@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Info, X, Trophy, Target, Star, Swords } from 'lucide-react'
 
@@ -50,79 +51,82 @@ export function RulesModal() {
         <span>REGLAS Y PUNTOS</span>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl"
-            >
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-mundialYellow via-mundialBlue to-mundialRed" />
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              />
               
-              <div className="flex items-center justify-between p-6 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-mundialYellow/20 p-2">
-                    <Info className="text-mundialYellow" size={20} />
-                  </div>
-                  <h2 className="text-xl font-black text-white">Reglas y Puntuación</h2>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="max-h-[70vh] overflow-y-auto p-6 space-y-8 no-scrollbar">
-                {rules.map((section) => (
-                  <div key={section.title} className="space-y-4">
-                    <div className="flex items-center gap-2 text-mundialYellow">
-                      {section.icon}
-                      <h3 className="font-bold uppercase tracking-widest text-sm">{section.title}</h3>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl"
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-mundialYellow via-mundialBlue to-mundialRed" />
+                
+                <div className="flex items-center justify-between p-6 border-b border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-mundialYellow/20 p-2">
+                      <Info className="text-mundialYellow" size={20} />
                     </div>
-                    
-                    <div className="grid gap-2">
-                      {section.items.map((item) => (
-                        <div key={item.label} className="flex items-center justify-between rounded-xl bg-white/5 p-3 border border-white/5">
-                          <span className="text-sm text-slate-300">{item.label}</span>
-                          <span className="text-sm font-black text-white">{item.value}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <h2 className="text-xl font-black text-white">Reglas y Puntuación</h2>
                   </div>
-                ))}
-
-                <div className="rounded-2xl bg-mundialBlue/20 border border-mundialBlue/30 p-4 flex gap-3">
-                  <Swords className="text-mundialBlue shrink-0" size={20} />
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    <span className="font-bold text-white italic">Nota Messi vs CR7:</span> Si ambos quedan eliminados en la Primera Fase, la pregunta se anula y nadie suma puntos.
-                  </p>
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-              </div>
 
-              <div className="p-6 border-t border-white/5">
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="w-full rounded-2xl bg-mundialYellow py-3 text-sm font-black text-slate-950 shadow-lg shadow-mundialYellow/20 hover:opacity-90 transition-opacity"
-                >
-                  ¡ENTENDIDO!
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div className="max-h-[70vh] overflow-y-auto p-6 space-y-8 no-scrollbar">
+                  {rules.map((section) => (
+                    <div key={section.title} className="space-y-4">
+                      <div className="flex items-center gap-2 text-mundialYellow">
+                        {section.icon}
+                        <h3 className="font-bold uppercase tracking-widest text-sm">{section.title}</h3>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        {section.items.map((item) => (
+                          <div key={item.label} className="flex items-center justify-between rounded-xl bg-white/5 p-3 border border-white/5">
+                            <span className="text-sm text-slate-300">{item.label}</span>
+                            <span className="text-sm font-black text-white">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="rounded-2xl bg-mundialBlue/20 border border-mundialBlue/30 p-4 flex gap-3">
+                    <Swords className="text-mundialBlue shrink-0" size={20} />
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      <span className="font-bold text-white italic">Nota Messi vs CR7:</span> Si ambos quedan eliminados en la Primera Fase, la pregunta se anula y nadie suma puntos.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 border-t border-white/5">
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="w-full rounded-2xl bg-mundialYellow py-3 text-sm font-black text-slate-950 shadow-lg shadow-mundialYellow/20 hover:opacity-90 transition-opacity"
+                  >
+                    ¡ENTENDIDO!
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   )
 }

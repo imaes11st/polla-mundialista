@@ -117,7 +117,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ─── Main Content ─── */}
-      <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6 md:py-6">
+      <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 pt-5 pb-24 sm:px-6 md:py-6">
         {children}
       </main>
 
