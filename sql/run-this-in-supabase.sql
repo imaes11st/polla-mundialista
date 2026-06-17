@@ -29,7 +29,7 @@ create table if not exists teams (
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references tournaments(id) on delete cascade,
-  external_id text,
+  external_id text unique,
   home_team_id uuid not null references teams(id),
   away_team_id uuid not null references teams(id),
   match_date timestamptz not null,
@@ -182,11 +182,24 @@ declare
   v_tendency_points int;
   v_predicted_winner int;
   v_actual_winner int;
+  v_mapped_stage text;
 begin
+  -- Map external stage names to internal scoring stages
+  v_mapped_stage := case 
+    when p_stage ilike '%regular%' or p_stage ilike '%group%' or p_stage ilike '%jornada%' then 'Grupo'
+    when p_stage ilike '%round of 32%' or p_stage ilike '%dieciseisavos%' then 'Dieciseisavos'
+    when p_stage ilike '%round of 16%' or p_stage ilike '%last_16%' or p_stage ilike '%octavos%' then 'Octavos'
+    when p_stage ilike '%quarter%' or p_stage ilike '%cuartos%' then 'Cuartos'
+    when p_stage ilike '%semi%' then 'Semifinal'
+    when p_stage ilike '%third%' or p_stage ilike '%tercer%' then 'Tercer Puesto'
+    when p_stage ilike '%final%' and p_stage not ilike '%semi%' and p_stage not ilike '%quarter%' and p_stage not ilike '%round%' then 'Final'
+    else 'Grupo' -- Default
+  end;
+
   select exact_points, tendency_points
   into v_exact_points, v_tendency_points
   from scoring_rules
-  where stage = p_stage;
+  where stage = v_mapped_stage;
 
   v_exact_points := coalesce(v_exact_points, 3);
   v_tendency_points := coalesce(v_tendency_points, 1);
@@ -283,15 +296,15 @@ begin
     group by p.id, p.full_name, p.created_at
   )
   select
-    row_number() over (order by total_points desc, matches_predicted desc, full_name asc) as rank,
-    ranking_data.participant_id,
-    ranking_data.full_name,
-    ranking_data.total_points,
-    ranking_data.matches_predicted,
-    ranking_data.exact_predictions,
-    ranking_data.created_at
-  from ranking_data
-  order by rank;
+    row_number() over (order by rd.total_points desc, rd.matches_predicted desc, rd.full_name asc)::bigint as rank,
+    rd.participant_id,
+    rd.full_name,
+    rd.total_points,
+    rd.matches_predicted,
+    rd.exact_predictions,
+    rd.created_at
+  from ranking_data rd
+  order by 1;
 end;
 $$ language plpgsql stable;
 
@@ -371,18 +384,25 @@ create policy "public select predictions" on predictions for select using (true)
 drop policy if exists "public insert predictions" on predictions;
 create policy "public insert predictions" on predictions
 for insert with check (
-  now() < (select match_date from matches where matches.id = predictions.match_id)
+  auth.uid() = participant_id
+  and now() < (select match_date from matches where matches.id = predictions.match_id)
 );
 
 drop policy if exists "public update predictions" on predictions;
 create policy "public update predictions" on predictions
-for update using (true)
-with check (
-  now() < (select match_date from matches where matches.id = predictions.match_id)
+for update using (
+  auth.uid() = participant_id
+) with check (
+  auth.uid() = participant_id
+  and now() < (select match_date from matches where matches.id = predictions.match_id)
 );
 
 drop policy if exists "public delete predictions" on predictions;
-create policy "public delete predictions" on predictions for delete using (true);
+create policy "public delete predictions" on predictions
+for delete using (
+  auth.uid() = participant_id
+  and now() < (select match_date from matches where matches.id = predictions.match_id)
+);
 
 drop policy if exists "public select scoring rules" on scoring_rules;
 create policy "public select scoring rules" on scoring_rules for select using (true);

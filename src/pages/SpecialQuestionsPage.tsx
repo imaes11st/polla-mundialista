@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '../components/ui/Card'
-import { Button } from '../components/ui/Button'
 import { SpecialQuestionCard } from '../components/SpecializedComponents'
+import { supabaseService } from '../services/supabase'
+import { useCurrentParticipant } from '../hooks/useCurrentParticipant'
 
 interface SpecialQuestion {
   id: string
@@ -14,63 +16,88 @@ interface SpecialQuestion {
 }
 
 export function SpecialQuestionsPage() {
-  const [questions, setQuestions] = useState<SpecialQuestion[]>([
-    {
-      id: '1',
-      question: '¿Quién será el Campeón del Mundo?',
-      type: 'team',
-      points: 10,
-      answered: false,
+  const queryClient = useQueryClient()
+  const { participant } = useCurrentParticipant()
+
+  // 1. Obtener torneos para saber cuál es el activo
+  const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
+    queryKey: ['tournaments-special'],
+    queryFn: () => supabaseService.listTournaments().then((res) => res.data || []),
+  })
+
+  const activeTournamentId = useMemo(() => 
+    tournaments?.find((t: any) => t.is_active)?.id || tournaments?.[0]?.id || '',
+    [tournaments]
+  )
+
+  // 2. Obtener preguntas especiales de la base de datos
+  const { data: dbQuestions = [], isLoading: isLoadingQuestions } = useQuery({
+    queryKey: ['special-questions', activeTournamentId],
+    queryFn: () => supabaseService.listSpecialQuestions(activeTournamentId).then((res) => res.data || []),
+    enabled: !!activeTournamentId,
+  })
+
+  // 3. Obtener respuestas de este participante
+  const { data: dbAnswers = [], isLoading: isLoadingAnswers } = useQuery({
+    queryKey: ['special-answers', participant?.id],
+    queryFn: () => supabaseService.listSpecialAnswers(participant?.id || '').then((res) => res.data || []),
+    enabled: !!participant?.id,
+  })
+
+  // 3b. Obtener todos los equipos de la base de datos para los combos de selección
+  const { data: teams = [], isLoading: isLoadingTeams } = useQuery({
+    queryKey: ['teams-list-specials'],
+    queryFn: () => supabaseService.listTeams().then((res) => res.data || []),
+  })
+
+  // 4. Mutation para guardar respuestas en la DB
+  const saveAnswerMutation = useMutation({
+    mutationFn: async (payload: { question_id: string; participant_id: string; answer: string }) => {
+      const { data, error } = await supabaseService.saveSpecialAnswer(payload)
+      if (error) throw error
+      return data
     },
-    {
-      id: '2',
-      question: 'Finalista 1: ¿Qué equipo llegará a la Gran Final?',
-      type: 'team',
-      points: 5,
-      answered: false,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['special-answers', participant?.id],
+      })
     },
-    {
-      id: '3',
-      question: 'Finalista 2: ¿Qué otro equipo llegará a la Gran Final?',
-      type: 'team',
-      points: 5,
-      answered: false,
-    },
-    {
-      id: '4',
-      question: '¿Quién será el Goleador del Campeonato?',
-      type: 'player',
-      points: 8,
-      answered: false,
-    },
-    {
-      id: '5',
-      question: '¿Quién será el Goleador de la Selección Colombia?',
-      type: 'player',
-      points: 5,
-      answered: false,
-    },
-    {
-      id: '6',
-      question: 'El Gran Duelo: ¿Quién llegará más lejos, Messi o Cristiano Ronaldo?',
-      type: 'text',
-      points: 5,
-      answered: false,
-    },
-  ])
+  })
+
+  // 5. Mapear preguntas con las respuestas correspondientes
+  const questions = useMemo(() => {
+    return dbQuestions.map((q: any) => {
+      const userAnswer = dbAnswers.find((a: any) => a.question_id === q.id)
+      return {
+        id: q.id,
+        question: q.question,
+        type: q.type as 'team' | 'player' | 'text',
+        points: q.points,
+        answered: !!userAnswer,
+        answer: userAnswer?.answer || '',
+      }
+    })
+  }, [dbQuestions, dbAnswers])
 
   const handleAnswer = (questionId: string, answer: string) => {
-    setQuestions(
-      questions.map((q) =>
-        q.id === questionId
-          ? { ...q, answered: true, answer }
-          : q
-      )
-    )
+    if (!participant?.id) return
+    saveAnswerMutation.mutate({
+      question_id: questionId,
+      participant_id: participant.id,
+      answer,
+    })
   }
 
   const answeredCount = questions.filter((q) => q.answered).length
   const totalPoints = questions.reduce((sum, q) => (q.answered ? sum + q.points : sum), 0)
+
+  if (isLoadingTournaments || isLoadingQuestions || isLoadingAnswers || isLoadingTeams) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="text-xl font-bold text-white animate-pulse">⏰ Cargando preguntas especiales...</div>
+      </div>
+    )
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -147,6 +174,7 @@ export function SpecialQuestionsPage() {
               points={question.points}
               answered={question.answered}
               answer={question.answer}
+              teams={teams}
               onAnswer={(answer) => handleAnswer(question.id, answer)}
             />
           </motion.div>

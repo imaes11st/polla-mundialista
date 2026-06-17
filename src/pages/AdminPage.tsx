@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { useParticipant } from '../contexts/ParticipantContext'
 
 // Sub-pages
 import { AdminParticipants } from '../components/admin/AdminParticipants'
@@ -11,10 +13,31 @@ import { AdminMatches } from '../components/admin/AdminMatches'
 import { AdminResults } from '../components/admin/AdminResults'
 import { AdminStatistics } from '../components/admin/AdminStatistics'
 
+const ADMIN_PHONE = '3024410621'
+
 type AdminTab = 'participants' | 'tournaments' | 'matches' | 'results' | 'statistics'
 
 export function AdminPage() {
+  const { participant } = useParticipant()
   const [activeTab, setActiveTab] = useState<AdminTab>('participants')
+
+  // Block access if not the admin
+  const isAdmin = participant?.phone_number?.replace(/\D/g, '').endsWith(ADMIN_PHONE)
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
+        <p className="text-5xl">🔒</p>
+        <h2 className="text-2xl font-black text-white">Acceso Restringido</h2>
+        <p className="text-slate-400 text-sm max-w-sm">
+          Solo el administrador puede acceder a este panel.
+        </p>
+        <Link to="/">
+          <Button variant="secondary" size="sm">Volver al inicio</Button>
+        </Link>
+      </div>
+    )
+  }
 
   const tabs: {
     id: AdminTab

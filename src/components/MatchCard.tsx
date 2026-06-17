@@ -5,7 +5,7 @@ export function MatchCard({ match, homeTeam, awayTeam, onSave }: { match: Match;
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-sports">
       <div className="flex items-center justify-between gap-3 text-sm text-slate-300">
-        <span>{new Date(match.match_date).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <span>{new Date(match.match_date).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}</span>
         <span className="rounded-full bg-white/10 px-3 py-1">{match.stage}</span>
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">

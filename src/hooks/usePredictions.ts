@@ -13,12 +13,12 @@ export function usePredictions(participantId: string, tournamentId: string) {
       const { data, error } = await supabaseService.getPredictions(participantId, tournamentId);
       if (error) throw error;
       
-      // Mapeamos para aplanar los puntos que vienen del JOIN
+      // Mapeamos para aplanar los puntos si existen
       return (data || []).map((p: any) => ({
         ...p,
-        points_awarded: Array.isArray(p.points) 
-          ? p.points[0]?.points_awarded 
-          : p.points?.points_awarded
+        points_awarded: p.points 
+          ? (Array.isArray(p.points) ? p.points[0]?.points_awarded : p.points?.points_awarded)
+          : 0
       }));
     },
     enabled: !!participantId && !!tournamentId, // No se ejecuta si faltan IDs
@@ -38,9 +38,12 @@ export function usePredictions(participantId: string, tournamentId: string) {
     },
     // AQUÍ ESTÁ EL TRUCO PARA QUE SE PINTE AL INSTANTE
     onSuccess: () => {
-      // Le decimos a React Query que limpie la caché e invoque un GET fresco de las predicciones
+      // Le decimos a React Query que limpie la caché e invoque un GET fresco de las predicciones y partidos
       queryClient.invalidateQueries({
         queryKey: ['predictions', participantId, tournamentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['matches', tournamentId, participantId],
       });
     },
   });

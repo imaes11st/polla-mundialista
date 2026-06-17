@@ -35,6 +35,21 @@ export const supabaseService = {
       .maybeSingle()
   },
 
+  async saveParticipant(participant: { id?: string; full_name: string; phone_number?: string; is_active?: boolean }) {
+    return ensureClient()
+      .from('participants')
+      .upsert(participant)
+      .select()
+  },
+
+  async deleteParticipant(id: string) {
+    // Soft delete to avoid breaking historical score tables / predictions
+    return ensureClient()
+      .from('participants')
+      .update({ is_active: false })
+      .eq('id', id)
+  },
+
   async listTournaments() {
     return ensureClient().from('tournaments').select('*').eq('is_active', true)
   },
@@ -70,22 +85,73 @@ export const supabaseService = {
           predicted_home,
           predicted_away,
           participant_id
+        ),
+        points:participant_points!left(
+          points_awarded,
+          participant_id
         )
       `)
       .eq('tournament_id', tournamentId)
       .eq('predictions.participant_id', participantId)
+      .eq('points.participant_id', participantId)
       .order('match_date', { ascending: true })
   },
 
-  // CORREGIDO: Filtra por participante y torneo, e incluye los puntos otorgados desde la tabla participant_points
+  // CORREGIDO: Filtra por participante y torneo. Los puntos se manejan preferiblemente en listMatchesWithPredictions.
   async getPredictions(participantId: string, tournamentId: string) {
     if (!participantId || !tournamentId) return { data: [], error: null };
 
     return ensureClient()
       .from('predictions')
-      .select('*, match:match_id!inner(*), points:participant_points!participant_id_match_id_fkey(points_awarded)')
+      .select(`
+        *,
+        match:match_id!inner(*)
+      `)
       .eq('participant_id', participantId)
       .eq('match.tournament_id', tournamentId)
+  },
+
+  async listSpecialQuestions(tournamentId: string) {
+    if (!tournamentId) return { data: [], error: null };
+    return ensureClient()
+      .from('special_questions')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('is_active', true)
+  },
+
+  async listSpecialAnswers(participantId: string) {
+    if (!participantId) return { data: [], error: null };
+    return ensureClient()
+      .from('special_answers')
+      .select('*')
+      .eq('participant_id', participantId)
+  },
+
+  async saveSpecialAnswer(payload: {
+    question_id: string
+    participant_id: string
+    answer: string
+  }) {
+    return ensureClient()
+      .from('special_answers')
+      .upsert(payload, { onConflict: 'question_id,participant_id' })
+      .select()
+  },
+
+  async updateMatchResult(
+    matchId: string,
+    payload: {
+      home_score: number
+      away_score: number
+      status: 'scheduled' | 'live' | 'finished'
+    }
+  ) {
+    return ensureClient()
+      .from('matches')
+      .update(payload)
+      .eq('id', matchId)
+      .select()
   },
 
   // OPTIMIZADO: Agregamos el .select() al final para forzar el retorno de los datos guardados
@@ -99,6 +165,10 @@ export const supabaseService = {
       .from('predictions')
       .upsert(payload, { onConflict: 'participant_id,match_id' })
       .select()
+  },
+
+  async listTeams() {
+    return ensureClient().from('teams').select('*').order('name', { ascending: true })
   },
 
   async syncMatches() {

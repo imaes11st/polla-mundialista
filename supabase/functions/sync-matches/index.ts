@@ -88,82 +88,36 @@ serve(async (req) => {
     const data = await response.json();
     
     // Load existing teams to avoid duplicate checks
-    const { data: dbTeams } = await supabase.from('teams').select('id, name, code, flag_url');
+    const { data: dbTeams } = await supabase.from('teams').select('id, name, code');
     const teamMapByCode = new Map(dbTeams?.map(t => [t.code.toLowerCase(), t.id]) || []);
     const teamMapByName = new Map(dbTeams?.map(t => [t.name.toLowerCase(), t.id]) || []);
-    const teamFlagMap = new Map(dbTeams?.map(t => [t.id, t.flag_url]) || []);
 
     const countryToCode: Record<string, string> = {
-      // Sudamérica (CONMEBOL)
-      'colombia': 'co', 'argentina': 'ar', 'brasil': 'br', 'brazil': 'br', 'uruguay': 'uy',
-      'paraguay': 'py', 'chile': 'cl', 'peru': 'pe', 'perú': 'pe', 'ecuador': 'ec', 'venezuela': 've', 'bolivia': 'bo',
-      // Norte y Centroamérica (CONCACAF)
-      'canadá': 'ca', 'canada': 'ca', 'estados unidos': 'us', 'usa': 'us', 'united states': 'us',
-      'mexico': 'mx', 'méxico': 'mx', 'jamaica': 'jm', 'costa rica': 'cr', 'panama': 'pa', 'panamá': 'pa',
-      'haiti': 'ht', 'haití': 'ht', 'curaçao': 'cw', 'curacao': 'cw',
-      // Europa (UEFA)
-      'germany': 'de', 'alemania': 'de', 'spain': 'es', 'españa': 'es', 'france': 'fr', 'francia': 'fr',
-      'england': 'gb-eng', 'inglaterra': 'gb-eng', 'scotland': 'gb-sct', 'escocia': 'gb-sct',
-      'belgium': 'be', 'bélgica': 'be', 'austria': 'at', 'croatia': 'hr', 'croacia': 'hr',
-      'czechia': 'cz', 'república checa': 'cz', 'netherlands': 'nl', 'países bajos': 'nl',
-      'norway': 'no', 'noruega': 'no', 'portugal': 'pt', 'sweden': 'se', 'suecia': 'se',
-      'switzerland': 'ch', 'suiza': 'ch', 'turkey': 'tr', 'turquía': 'tr', 'bosnia-herzegovina': 'ba',
-      // África (CAF)
-      'algeria': 'dz', 'argelia': 'dz', 'cape verde': 'cv', 'cape verde islands': 'cv', 'cabo verde': 'cv',
-      'congo dr': 'cd', 'rd congo': 'cd', 'egypt': 'eg', 'egipto': 'eg', 'ghana': 'gh',
-      'ivory coast': 'ci', 'costa de marfil': 'ci', 'morocco': 'ma', 'marruecos': 'ma', 'senegal': 'sn',
-      'south africa': 'za', 'sudáfrica': 'za', 'tunisia': 'tn', 'túnez': 'tn',
-      // Asia y Oceanía (AFC / OFC)
-      'australia': 'au', 'iran': 'ir', 'irán': 'ir', 'iraq': 'iq', 'irak': 'iq', 'japan': 'jp', 'japón': 'jp',
-      'jordan': 'jo', 'jordania': 'jo', 'qatar': 'qa', 'saudi arabia': 'sa', 'arabia saudita': 'sa',
-      'south korea': 'kr', 'corea del sur': 'kr', 'uzbekistan': 'uz', 'uzbekistán': 'uz', 'new zealand': 'nz', 'nueva zelanda': 'nz'
+      'colombia': 'co',
+      'argentina': 'ar',
+      'brasil': 'br',
+      'brazil': 'br',
+      'uruguay': 'uy',
+      'paraguay': 'py',
+      'chile': 'cl',
+      'peru': 'pe',
+      'perú': 'pe',
+      'ecuador': 'ec',
+      'venezuela': 've',
+      'bolivia': 'bo',
+      'canadá': 'ca',
+      'canada': 'ca',
+      'estados unidos': 'us',
+      'usa': 'us',
+      'mexico': 'mx',
+      'méxico': 'mx',
+      'jamaica': 'jm',
+      'costa rica': 'cr',
+      'panama': 'pa',
+      'panamá': 'pa'
     };
 
     let syncedCount = 0;
-
-    // Helper function para procesar, insertar o actualizar equipos dinámicamente con su URL real
-    async function processTeam(name: string, apiCode: string | null, apiLogo: string | null) {
-      if (!name) return null;
-      
-      const lowerName = name.toLowerCase();
-      const lowerCode = apiCode?.toLowerCase() || '';
-      
-      let teamId = teamMapByName.get(lowerName) || (lowerCode && teamMapByCode.get(lowerCode));
-      
-      const fallbackCode = countryToCode[lowerName] || lowerCode || name.substring(0, 3).toLowerCase();
-      const finalFlagUrl = apiLogo || `https://flagcdn.com/${fallbackCode}.svg`;
-
-      if (!teamId) {
-        // El equipo no existe, se crea con la URL directa de la API
-        const { data: newTeam } = await supabase
-          .from('teams')
-          .insert({
-            name: name,
-            code: fallbackCode,
-            flag_url: finalFlagUrl
-          })
-          .select('id')
-          .single();
-
-        if (newTeam) {
-          teamId = newTeam.id;
-          teamMapByName.set(lowerName, teamId);
-          teamMapByCode.set(fallbackCode, teamId);
-          teamFlagMap.set(teamId, finalFlagUrl);
-        }
-      } else {
-        // Si el equipo existe pero no tiene flag_url o tiene el fallback antiguo de flagcdn, lo actualizamos con el logo real de la API
-        const currentFlag = teamFlagMap.get(teamId);
-        if (apiLogo && (!currentFlag || currentFlag.includes('flagcdn.com'))) {
-          await supabase
-            .from('teams')
-            .update({ flag_url: apiLogo })
-            .eq('id', teamId);
-          teamFlagMap.set(teamId, apiLogo);
-        }
-      }
-      return teamId;
-    }
     
     if (data.response && Array.isArray(data.response)) {
       // API-Football response format
@@ -182,10 +136,54 @@ serve(async (req) => {
         const homeScore = goals.home !== null && goals.home !== undefined ? Number(goals.home) : null;
         const awayScore = goals.away !== null && goals.away !== undefined ? Number(goals.away) : null;
 
-        const homeTeamId = await processTeam(teams.home.name, teams.home.code, teams.home.logo);
-        const awayTeamId = await processTeam(teams.away.name, teams.away.code, teams.away.logo);
+        // Process Home Team
+        let homeTeamId = teamMapByName.get(teams.home.name.toLowerCase()) || 
+                         (teams.home.code && teamMapByCode.get(teams.home.code.toLowerCase()));
+        if (!homeTeamId) {
+          const code = countryToCode[teams.home.name.toLowerCase()] || 
+                       teams.home.code?.toLowerCase() || 
+                       teams.home.name.substring(0, 3).toLowerCase();
+          const { data: newTeam } = await supabase
+            .from('teams')
+            .insert({
+              name: teams.home.name,
+              code,
+              flag_url: teams.home.logo || `https://flagcdn.com/${code}.svg`
+            })
+            .select('id')
+            .single();
+          if (newTeam) {
+            homeTeamId = newTeam.id;
+            teamMapByName.set(teams.home.name.toLowerCase(), homeTeamId);
+            teamMapByCode.set(code, homeTeamId);
+          }
+        }
+
+        // Process Away Team
+        let awayTeamId = teamMapByName.get(teams.away.name.toLowerCase()) || 
+                         (teams.away.code && teamMapByCode.get(teams.away.code.toLowerCase()));
+        if (!awayTeamId) {
+          const code = countryToCode[teams.away.name.toLowerCase()] || 
+                       teams.away.code?.toLowerCase() || 
+                       teams.away.name.substring(0, 3).toLowerCase();
+          const { data: newTeam } = await supabase
+            .from('teams')
+            .insert({
+              name: teams.away.name,
+              code,
+              flag_url: teams.away.logo || `https://flagcdn.com/${code}.svg`
+            })
+            .select('id')
+            .single();
+          if (newTeam) {
+            awayTeamId = newTeam.id;
+            teamMapByName.set(teams.away.name.toLowerCase(), awayTeamId);
+            teamMapByCode.set(code, awayTeamId);
+          }
+        }
 
         if (homeTeamId && awayTeamId) {
+          // Upsert Match
           const matchPayload = {
             tournament_id: tournamentId,
             external_id: extId,
@@ -198,6 +196,7 @@ serve(async (req) => {
             away_score: awayScore
           };
 
+          // Find if match already exists by external_id
           const { data: existingMatch } = await supabase
             .from('matches')
             .select('id')
@@ -205,9 +204,14 @@ serve(async (req) => {
             .maybeSingle();
 
           if (existingMatch) {
-            await supabase.from('matches').update(matchPayload).eq('id', existingMatch.id);
+            await supabase
+              .from('matches')
+              .update(matchPayload)
+              .eq('id', existingMatch.id);
           } else {
-            await supabase.from('matches').insert(matchPayload);
+            await supabase
+              .from('matches')
+              .insert(matchPayload);
           }
           syncedCount++;
         }
@@ -217,19 +221,74 @@ serve(async (req) => {
       for (const m of data.matches) {
         const extId = String(m.id);
         const matchDate = m.utcDate;
-        const stage = m.stage || 'Grupo';
+        let stage = m.stage || 'Grupo';
+        if (m.stage === 'GROUP_STAGE' && m.group) {
+          stage = m.group.replace('GROUP_', 'Group ');
+        }
         
-        let status: 'scheduled' | 'live' | 'finished' = 'scheduled';
-        if (m.status === 'FINISHED') status = 'finished';
-        else if (m.status === 'IN_PLAY' || m.status === 'PAUSED') status = 'live';
+        const status = mapStatus(m.status); // Usa la misma función para ambos formatos
 
         const homeScore = m.score?.fullTime?.home !== null && m.score?.fullTime?.home !== undefined ? Number(m.score.fullTime.home) : null;
         const awayScore = m.score?.fullTime?.away !== null && m.score?.fullTime?.away !== undefined ? Number(m.score.fullTime.away) : null;
 
-        const homeTeamId = await processTeam(m.homeTeam?.name, m.homeTeam?.tla, m.homeTeam?.crest);
-        const awayTeamId = await processTeam(m.awayTeam?.name, m.awayTeam?.tla, m.awayTeam?.crest);
+        const homeName = m.homeTeam?.name;
+        const homeCode = m.homeTeam?.tla || '';
+        const homeLogo = m.homeTeam?.crest;
+
+        const awayName = m.awayTeam?.name;
+        const awayCode = m.awayTeam?.tla || '';
+        const awayLogo = m.awayTeam?.crest;
+
+        if (!homeName || !awayName) continue;
+
+        // Process Home Team
+        let homeTeamId = teamMapByName.get(homeName.toLowerCase()) || 
+                         (homeCode && teamMapByCode.get(homeCode.toLowerCase()));
+        if (!homeTeamId) {
+          const code = countryToCode[homeName.toLowerCase()] || 
+                       homeCode.toLowerCase() || 
+                       homeName.substring(0, 3).toLowerCase();
+          const { data: newTeam } = await supabase
+            .from('teams')
+            .insert({
+              name: homeName,
+              code,
+              flag_url: homeLogo || `https://flagcdn.com/${code}.svg`
+            })
+            .select('id')
+            .single();
+          if (newTeam) {
+            homeTeamId = newTeam.id;
+            teamMapByName.set(homeName.toLowerCase(), homeTeamId);
+            teamMapByCode.set(code, homeTeamId);
+          }
+        }
+
+        // Process Away Team
+        let awayTeamId = teamMapByName.get(awayName.toLowerCase()) || 
+                         (awayCode && teamMapByCode.get(awayCode.toLowerCase()));
+        if (!awayTeamId) {
+          const code = countryToCode[awayName.toLowerCase()] || 
+                       awayCode.toLowerCase() || 
+                       awayName.substring(0, 3).toLowerCase();
+          const { data: newTeam } = await supabase
+            .from('teams')
+            .insert({
+              name: awayName,
+              code,
+              flag_url: awayLogo || `https://flagcdn.com/${code}.svg`
+            })
+            .select('id')
+            .single();
+          if (newTeam) {
+            awayTeamId = newTeam.id;
+            teamMapByName.set(awayName.toLowerCase(), awayTeamId);
+            teamMapByCode.set(code, awayTeamId);
+          }
+        }
 
         if (homeTeamId && awayTeamId) {
+          // Upsert Match
           const matchPayload = {
             tournament_id: tournamentId,
             external_id: extId,
@@ -249,16 +308,34 @@ serve(async (req) => {
             .maybeSingle();
 
           if (existingMatch) {
-            await supabase.from('matches').update(matchPayload).eq('id', existingMatch.id);
+            await supabase
+              .from('matches')
+              .update(matchPayload)
+              .eq('id', existingMatch.id);
           } else {
-            await supabase.from('matches').insert(matchPayload);
+            await supabase
+              .from('matches')
+              .insert(matchPayload);
           }
           syncedCount++;
         }
       }
     }
 
-    return new Response(JSON.stringify({ success: true, syncedMatchesCount: syncedCount }), {
+    // Fallback de seguridad: Autocambiar a 'live' partidos que ya empezaron pero siguen marcados 'scheduled'
+    const nowIso = new Date().toISOString();
+    await supabase
+      .from('matches')
+      .update({ status: 'live' })
+      .eq('status', 'scheduled')
+      .lte('match_date', nowIso);
+
+    // Retorna ambas propiedades para compatibilidad total con el frontend
+    return new Response(JSON.stringify({ 
+      success: true, 
+      synced: syncedCount,
+      syncedMatchesCount: syncedCount 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
@@ -272,7 +349,7 @@ serve(async (req) => {
 
 function mapStatus(apiStatus: string): 'scheduled' | 'live' | 'finished' {
   const s = apiStatus.toUpperCase();
-  if (['FT', 'AET', 'PEN'].includes(s)) return 'finished';
-  if (['NS', 'TBD'].includes(s)) return 'scheduled';
+  if (['FT', 'AET', 'PEN', 'FINISHED'].includes(s)) return 'finished';
+  if (['NS', 'TBD', 'SCHEDULED', 'TIMED'].includes(s)) return 'scheduled';
   return 'live';
 }

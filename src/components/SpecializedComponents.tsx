@@ -1,4 +1,6 @@
+import React from 'react'
 import { motion } from 'framer-motion'
+import { Button } from './ui/Button'
 
 // ============================================================================
 // EVENT BADGE - Notificación de eventos especiales
@@ -75,6 +77,7 @@ interface SpecialQuestionCardProps {
   answered?: boolean
   answer?: string
   onAnswer: (value: string) => void
+  teams?: Array<{ id: string; name: string }>
 }
 
 export function SpecialQuestionCard({
@@ -84,70 +87,107 @@ export function SpecialQuestionCard({
   answered,
   answer: initialAnswer,
   onAnswer,
+  teams = [],
 }: SpecialQuestionCardProps) {
+  const [localAnswer, setLocalAnswer] = React.useState(initialAnswer || '')
+
+  React.useEffect(() => {
+    setLocalAnswer(initialAnswer || '')
+  }, [initialAnswer])
+
+  const isDuel = question.toLowerCase().includes('messi') && question.toLowerCase().includes('ronaldo')
+
+  const handleSave = () => {
+    if (localAnswer.trim()) {
+      onAnswer(localAnswer.trim())
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-mundialYellow/20 p-6 hover:border-mundialYellow/50 transition-colors"
+      className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-mundialYellow/20 p-6 hover:border-mundialYellow/50 transition-colors shadow-lg"
     >
       {/* Points badge */}
-      <div className="absolute top-4 right-4 bg-gradient-to-r from-mundialYellow to-orange-500 rounded-full px-4 py-2">
-        <span className="font-bold text-slate-900 text-sm">+{points} pts</span>
+      <div className="absolute top-4 right-4 bg-gradient-to-r from-mundialYellow to-orange-500 rounded-full px-4 py-2 shadow-md">
+        <span className="font-bold text-slate-900 text-xs">+{points} pts</span>
       </div>
 
       {/* Question */}
-      <h3 className="text-lg font-bold text-white mb-4 pr-20">{question}</h3>
+      <h3 className="text-lg font-bold text-white mb-4 pr-24 leading-snug">{question}</h3>
 
       {/* Answer input based on type */}
       {!answered ? (
-        <div className="space-y-3">
-          {type === 'team' && (
-            <div className="grid grid-cols-2 gap-2">
-              {['Colombia', 'Argentina', 'Brasil', 'México'].map((team) => (
+        <div className="space-y-4">
+          {isDuel ? (
+            <div className="grid grid-cols-2 gap-3">
+              {['Messi', 'Cristiano Ronaldo'].map((player) => (
                 <motion.button
-                  key={team}
-                  onClick={() => onAnswer(team)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="py-2 px-3 bg-slate-700 hover:bg-mundialYellow hover:text-slate-900 text-white rounded-lg transition-colors font-semibold"
+                  key={player}
+                  type="button"
+                  onClick={() => onAnswer(player)}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="py-3 px-4 bg-slate-700 hover:bg-mundialYellow hover:text-slate-900 text-white rounded-xl transition-all font-bold text-sm tracking-wide border border-white/5"
                 >
-                  {team}
+                  {player}
                 </motion.button>
               ))}
             </div>
-          )}
-
-          {type === 'player' && (
-            <input
-              type="text"
-              placeholder="Nombre del jugador..."
-              onChange={(e) => onAnswer(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mundialYellow"
-            />
-          )}
-
-          {type === 'text' && (
-            <textarea
-              placeholder="Tu respuesta..."
-              onChange={(e) => onAnswer(e.target.value)}
-              rows={2}
-              className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mundialYellow resize-none"
-            />
+          ) : type === 'team' ? (
+            <div className="space-y-3">
+              <select
+                value={localAnswer}
+                onChange={(e) => setLocalAnswer(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border border-white/10 focus:outline-none focus:ring-2 focus:ring-mundialYellow focus:border-mundialYellow font-semibold"
+              >
+                <option value="" disabled>Selecciona un equipo...</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.name}>{t.name}</option>
+                ))}
+              </select>
+              <Button onClick={handleSave} disabled={!localAnswer} className="w-full py-2.5 text-sm font-bold">
+                Guardar Selección
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {type === 'player' ? (
+                <input
+                  type="text"
+                  placeholder="Nombre del jugador..."
+                  value={localAnswer}
+                  onChange={(e) => setLocalAnswer(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border border-white/10 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mundialYellow font-medium"
+                />
+              ) : (
+                <textarea
+                  placeholder="Tu respuesta..."
+                  value={localAnswer}
+                  onChange={(e) => setLocalAnswer(e.target.value)}
+                  rows={2}
+                  className="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border border-white/10 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mundialYellow resize-none font-medium"
+                />
+              )}
+              <Button onClick={handleSave} disabled={!localAnswer.trim()} className="w-full py-2.5 text-sm font-bold">
+                Guardar Respuesta
+              </Button>
+            </div>
           )}
         </div>
       ) : (
         <motion.div
-          initial={{ scale: 0.8 }}
+          initial={{ scale: 0.95 }}
           animate={{ scale: 1 }}
-          className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-lg p-3"
+          className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col gap-2"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">✅</span>
-            <div>
-              <p className="text-sm text-slate-300">Tu respuesta:</p>
-              <p className="font-semibold text-white">{initialAnswer}</p>
-            </div>
+          <div className="flex items-center gap-2 text-green-400 font-bold text-sm">
+            <span>✅ Respuesta Guardada</span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Tu respuesta:</p>
+            <p className="font-bold text-white text-lg mt-0.5">{initialAnswer}</p>
           </div>
         </motion.div>
       )}

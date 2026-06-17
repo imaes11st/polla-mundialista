@@ -43,10 +43,8 @@ BEGIN
   WHERE stage = v_mapped_stage;
 
   -- If no rule found, use default (Grupo)
-  IF v_exact_points IS NULL THEN
-    v_exact_points := 3;
-    v_tendency_points := 1;
-  END IF;
+  v_exact_points := COALESCE(v_exact_points, 3);
+  v_tendency_points := COALESCE(v_tendency_points, 1);
 
   -- Check if exact prediction
   IF p_predicted_home = p_actual_home AND p_predicted_away = p_actual_away THEN
@@ -54,22 +52,18 @@ BEGIN
   END IF;
 
   -- Determine predicted winner
-  IF p_predicted_home > p_predicted_away THEN
-    v_predicted_winner := 1; -- home win
-  ELSIF p_predicted_home < p_predicted_away THEN
-    v_predicted_winner := -1; -- away win
-  ELSE
-    v_predicted_winner := 0; -- draw
-  END IF;
+  v_predicted_winner := CASE 
+    WHEN p_predicted_home > p_predicted_away THEN 1
+    WHEN p_predicted_home < p_predicted_away THEN -1
+    ELSE 0
+  END;
 
   -- Determine actual winner
-  IF p_actual_home > p_actual_away THEN
-    v_actual_winner := 1; -- home win
-  ELSIF p_actual_home < p_actual_away THEN
-    v_actual_winner := -1; -- away win
-  ELSE
-    v_actual_winner := 0; -- draw
-  END IF;
+  v_actual_winner := CASE 
+    WHEN p_actual_home > p_actual_away THEN 1
+    WHEN p_actual_home < p_actual_away THEN -1
+    ELSE 0
+  END;
 
   -- Check if tendency correct
   IF v_predicted_winner = v_actual_winner THEN
@@ -79,7 +73,7 @@ BEGIN
   -- No points if wrong
   RETURN 0;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- ============================================================================
 
@@ -93,25 +87,22 @@ DECLARE
   v_match RECORD;
   v_prediction RECORD;
   v_points INT;
-  v_stage TEXT;
 BEGIN
   -- Get match details
-  SELECT m.*, t.name as tournament_name
+  SELECT *
   INTO v_match
-  FROM matches m
-  JOIN tournaments t ON m.tournament_id = t.id
-  WHERE m.id = p_match_id AND m.status = 'finished' AND m.home_score IS NOT NULL;
+  FROM matches
+  WHERE id = p_match_id AND status = 'finished' AND home_score IS NOT NULL AND away_score IS NOT NULL;
 
   IF v_match IS NULL THEN
-    RAISE EXCEPTION 'Match not found or not finished';
+    RETURN;
   END IF;
 
   -- Process each prediction for this match
   FOR v_prediction IN
-    SELECT p.*, pp.participant_id
-    FROM predictions p
-    JOIN participant_points pp ON p.participant_id = pp.participant_id
-    WHERE p.match_id = p_match_id
+    SELECT *
+    FROM predictions
+    WHERE match_id = p_match_id
   LOOP
     -- Calculate points
     v_points := calculate_prediction_points(
@@ -153,9 +144,9 @@ BEGIN
       pp.participant_id,
       p.full_name,
       p.created_at,
-      COALESCE(SUM(pp.points_awarded), 0) as total_points,
-      COUNT(DISTINCT pp.match_id) as matches_predicted,
-      COUNT(DISTINCT CASE WHEN pp.points_awarded >= 3 THEN pp.match_id END) as exact_predictions
+      COALESCE(SUM(pp.points_awarded), 0)::INT as total_points,
+      COUNT(DISTINCT pp.match_id)::INT as matches_predicted,
+      COUNT(DISTINCT CASE WHEN pp.points_awarded >= 3 THEN pp.match_id END)::INT as exact_predictions
     FROM participant_points pp
     JOIN participants p ON pp.participant_id = p.id
     LEFT JOIN matches m ON pp.match_id = m.id
@@ -163,15 +154,15 @@ BEGIN
     GROUP BY pp.participant_id, p.full_name, p.created_at
   )
   SELECT
-    ROW_NUMBER() OVER (ORDER BY total_points DESC, matches_predicted DESC) as rank,
-    participant_id,
-    full_name,
-    total_points,
-    matches_predicted,
-    exact_predictions,
-    created_at
-  FROM ranking_data
-  ORDER BY rank;
+    ROW_NUMBER() OVER (ORDER BY rd.total_points DESC, rd.matches_predicted DESC, rd.full_name ASC)::INT as rank,
+    rd.participant_id,
+    rd.full_name,
+    rd.total_points,
+    rd.matches_predicted,
+    rd.exact_predictions,
+    rd.created_at
+  FROM ranking_data rd
+  ORDER BY 1;
 END;
 $$ LANGUAGE plpgsql;
 

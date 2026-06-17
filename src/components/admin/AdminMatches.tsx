@@ -1,13 +1,40 @@
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { useState } from 'react'
 import { supabaseService } from '../../services/supabase'
 
 export function AdminMatches() {
   const [syncing, setSyncing] = useState(false)
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null)
+
+  // 1. Obtener torneos para saber cuál es el activo
+  const { data: tournaments } = useQuery({
+    queryKey: ['tournaments-admin-matches'],
+    queryFn: () => supabaseService.listTournaments().then((res) => res.data || []),
+  })
+
+  const activeTournamentId = useMemo(() => 
+    tournaments?.find((t: any) => t.is_active)?.id || tournaments?.[0]?.id || '',
+    [tournaments]
+  )
+
+  // 2. Obtener partidos de Supabase
+  const { data: dbMatches = [] } = useQuery({
+    queryKey: ['admin-matches-list', activeTournamentId],
+    queryFn: () => supabaseService.listAllMatches(activeTournamentId).then((res) => res.data || []),
+    enabled: !!activeTournamentId,
+  })
+
+  // 3. Calcular estadísticas en tiempo real
+  const stats = useMemo(() => {
+    const total = dbMatches.length
+    const finished = dbMatches.filter((m: any) => m.status === 'finished').length
+    const scheduled = dbMatches.filter((m: any) => m.status === 'scheduled' || m.status === 'live').length
+    return { total, finished, scheduled }
+  }, [dbMatches])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -16,9 +43,10 @@ export function AdminMatches() {
       const { data, error } = await supabaseService.syncMatches()
       if (error) throw error
       
+      const syncedCount = data && typeof data === 'object' && 'synced' in data ? (data as any).synced : 0;
       setLastResult({ 
         success: true, 
-        message: `Sincronización exitosa: ${data.syncedMatchesCount} partidos procesados.` 
+        message: `Sincronización exitosa: ${syncedCount} partidos procesados.` 
       })
     } catch (err: any) {
       console.error('Error syncing matches:', err)
@@ -86,15 +114,15 @@ export function AdminMatches() {
                 <div className="grid md:grid-cols-3 gap-4 mt-4">
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-xs text-slate-400 mb-1">Total Partidos</p>
-                    <p className="text-3xl font-bold text-mundialYellow">48</p>
+                    <p className="text-3xl font-bold text-mundialYellow">{stats.total}</p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-xs text-slate-400 mb-1">Completados</p>
-                    <p className="text-3xl font-bold text-green-400">12</p>
+                    <p className="text-3xl font-bold text-green-400">{stats.finished}</p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-xs text-slate-400 mb-1">Programados</p>
-                    <p className="text-3xl font-bold text-blue-400">36</p>
+                    <p className="text-3xl font-bold text-blue-400">{stats.scheduled}</p>
                   </div>
                 </div>
               </div>

@@ -17,6 +17,10 @@ export interface MatchData {
     predicted_away: number | null
     participant_id: string
   }[]
+  points?: {
+    points_awarded: number
+    participant_id: string
+  }[]
 }
 
 export function useMatches(tournamentId: string, participantId?: string) {

@@ -31,13 +31,21 @@ export function PredictionsPage() {
 
   // Agrupamos por FECHAS para un orden absoluto
   const { groupedByDate, datesAvailable } = useMemo(() => {
-    const grouped = (matches || []).reduce(
+    const startDate = new Date('2026-06-17T00:00:00Z')
+    const filteredMatches = (matches || []).filter(match => {
+      if (!match.match_date) return false
+      const matchDate = new Date(match.match_date)
+      return matchDate >= startDate
+    })
+
+    const grouped = filteredMatches.reduce(
       (acc: Record<string, MatchData[]>, match: MatchData) => {
-        // Formateamos la fecha como "16 JUN" o "16 JUNIO"
+        // Formateamos la fecha como "17 JUN" o "17 JUNIO"
         const dateObj = new Date(match.match_date)
         const dateLabel = dateObj.toLocaleDateString('es-CO', { 
           day: '2-digit', 
-          month: 'short' 
+          month: 'short',
+          timeZone: 'America/Bogota'
         }).toUpperCase().replace('.', '')
         
         if (!acc[dateLabel]) acc[dateLabel] = []
@@ -58,7 +66,17 @@ export function PredictionsPage() {
   }, [matches])
 
   // Selección dinámica por FECHA
-  const currentActiveDate = selectedStage || datesAvailable[0] || ''
+  const defaultDate = useMemo(() => {
+    if (datesAvailable.length === 0) return ''
+    const todayLabel = new Date().toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'America/Bogota'
+    }).toUpperCase().replace('.', '')
+    return datesAvailable.includes(todayLabel) ? todayLabel : datesAvailable[0]
+  }, [datesAvailable])
+
+  const currentActiveDate = selectedStage || defaultDate
   const activeMatches = groupedByDate[currentActiveDate] || []
   const isLoading = isLoadingMatches || isLoadingTournaments || !activeTournamentId || !participant?.id
 
@@ -118,12 +136,11 @@ export function PredictionsPage() {
             {activeMatches.map((match) => {
               // Extraer el pronóstico del JOIN de la base de datos
               const prediction = match.predictions?.[0]
-              const matchPoints = predictions?.find((p: any) => String(p.match_id || p.match?.id) === String(match.id))?.points_awarded;
+              const matchPoints = match.points?.[0]?.points_awarded;
 
-              // 🛡️ REGLA DE BLOQUEO ESTANDARIZADA
-              // La fuente de verdad es el estado del partido en la base de datos.
-              // Solo se permite editar si el estado es 'scheduled'.
-              const isMatchLocked = match.status !== 'scheduled';
+              // Bloqueamos si: (1) DB dice que no está 'scheduled' O (2) la hora del partido ya pasó (en UTC/local)
+              const matchTime = new Date(match.match_date).getTime();
+              const isMatchLocked = match.status !== 'scheduled' || matchTime <= Date.now();
 
               return (
                 <MatchCard
@@ -144,6 +161,11 @@ export function PredictionsPage() {
                   disabled={isMatchLocked}
                   points={matchPoints} // 👈 Pasamos los puntos del backend
                   onSave={(home, away) => {
+                    if (isMatchLocked) {
+                      showToast('Este partido ya comenzó o su hora ha pasado. No se permiten modificaciones.', 'error')
+                      return
+                    }
+
                     if (!participant) {
                       showToast('Por favor selecciona tu nombre en la página de inicio para guardar pronósticos.', 'info')
                       return

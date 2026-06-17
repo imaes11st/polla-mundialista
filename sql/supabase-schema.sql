@@ -29,7 +29,7 @@ create table if not exists teams (
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references tournaments(id) on delete cascade,
-  external_id text,
+  external_id text unique,
   home_team_id uuid not null references teams(id),
   away_team_id uuid not null references teams(id),
   match_date timestamp with time zone not null,
@@ -98,8 +98,6 @@ create table if not exists audit_logs (
 -- CONSTRAINTS & CHECKS
 -- ============================================================================
 
-alter table matches add constraint check_match_dates
-  check (match_date <= end_date OR end_date IS NULL);
 
 alter table predictions add constraint check_prediction_values
   check (predicted_home >= 0 AND predicted_away >= 0);

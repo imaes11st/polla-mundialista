@@ -19,6 +19,7 @@ interface BallLayer {
   driftX: number
   driftY: number
   rotate: number
+  hue: number
 }
 
 const seededRandom = (seed: number) => {
@@ -31,57 +32,141 @@ const createBall = (id: number): BallLayer => {
 
   return {
     id,
-    left: seededRandom(id + 11) * 104 - 2,
-    top: seededRandom(id + 17) * 110 - 5,
-    size: 22 + depth * 58,
-    opacity: 0.05 + depth * 0.13,
-    blur: (1 - depth) * 4.5,
+    left: seededRandom(id + 11) * 100,
+    top: seededRandom(id + 17) * 100,
+    size: 32 + depth * 48,
+    opacity: 0.08 + depth * 0.14,
+    blur: (1 - depth) * 2.5,
     depth,
-    duration: 12 + seededRandom(id + 23) * 14,
-    delay: seededRandom(id + 29) * -12,
-    driftX: (seededRandom(id + 31) - 0.5) * (70 + depth * 110),
-    driftY: (seededRandom(id + 37) - 0.5) * (55 + depth * 90),
+    duration: 16 + seededRandom(id + 23) * 12,
+    delay: seededRandom(id + 29) * -8,
+    driftX: (seededRandom(id + 31) - 0.5) * (60 + depth * 80),
+    driftY: (seededRandom(id + 37) - 0.5) * (50 + depth * 70),
     rotate: seededRandom(id + 41) > 0.5 ? 360 : -360,
+    hue: Math.floor(seededRandom(id + 47) * 3), // 0=yellow, 1=blue, 2=red
   }
 }
 
-const SoccerBallSvg = memo(function SoccerBallSvg() {
+// Color accents per ball for variety
+const ACCENT_COLORS = [
+  { stroke: '#FCD116', glow: 'rgba(252, 209, 22, 0.15)' },  // Yellow
+  { stroke: '#4A90D9', glow: 'rgba(0, 56, 147, 0.12)' },    // Blue
+  { stroke: '#E84057', glow: 'rgba(206, 17, 38, 0.12)' },    // Red
+]
+
+/**
+ * Premium FIFA World Cup 2026 soccer ball
+ * Inspired by the "Al Rihla" style with fluid panel design
+ */
+const WorldCupBall = memo(function WorldCupBall({ hue = 0 }: { hue?: number }) {
+  const accent = ACCENT_COLORS[hue % 3]
+  const ballId = `ball-${hue}-${Math.random().toString(36).slice(2, 6)}`
+
   return (
-    <svg viewBox="0 0 120 120" role="img" aria-label="Balon de futbol">
+    <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-lg" aria-hidden="true">
       <defs>
-        <radialGradient id="ballShade" cx="36%" cy="28%" r="72%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f3f4f6" />
-          <stop offset="100%" stopColor="#bfc6d1" />
+        {/* 3D sphere shading */}
+        <radialGradient id={`${ballId}-shade`} cx="38%" cy="35%" r="62%">
+          <stop offset="0%" stopColor="rgba(255, 255, 255, 0.5)" />
+          <stop offset="35%" stopColor="rgba(255, 255, 255, 0.15)" />
+          <stop offset="70%" stopColor="rgba(0, 17, 47, 0.3)" />
+          <stop offset="100%" stopColor="rgba(0, 10, 30, 0.65)" />
         </radialGradient>
-        <filter id="ballShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000000" floodOpacity="0.22" />
-        </filter>
+        {/* Outer glow */}
+        <radialGradient id={`${ballId}-glow`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={accent.glow} />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        {/* Specular highlight */}
+        <radialGradient id={`${ballId}-spec`} cx="35%" cy="30%" r="25%">
+          <stop offset="0%" stopColor="rgba(255, 255, 255, 0.6)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
       </defs>
-      <circle cx="60" cy="60" r="55" fill="url(#ballShade)" stroke="#d1d5db" strokeWidth="2" filter="url(#ballShadow)" />
-      <polygon points="60,32 77,45 70,66 50,66 43,45" fill="#111827" />
-      <polygon points="60,4 75,15 71,32 49,32 45,15" fill="#111827" />
-      <polygon points="101,37 108,55 96,70 79,62 82,43" fill="#111827" />
-      <polygon points="86,90 76,108 56,108 50,88 69,78" fill="#111827" />
-      <polygon points="34,90 51,88 45,108 24,103 19,84" fill="#111827" />
-      <polygon points="19,37 38,43 41,62 24,70 12,55" fill="#111827" />
-      <path d="M49 32 43 45M71 32l6 13M50 66 41 62M70 66l9-4M50 88l-7-22M69 78l1-12M38 43l5 2M82 43l-5 2" stroke="#111827" strokeWidth="4" strokeLinecap="round" />
-      <path d="M28 28c16-17 44-22 66-8" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" opacity="0.45" />
-      <circle cx="60" cy="60" r="55" fill="none" stroke="#111827" strokeWidth="1.5" opacity="0.18" />
+
+      {/* Ambient glow ring */}
+      <circle cx="60" cy="60" r="56" fill={`url(#${ballId}-glow)`} />
+
+      {/* Main sphere base */}
+      <circle
+        cx="60" cy="60" r="44"
+        fill="rgba(240, 240, 245, 0.06)"
+        stroke="rgba(255, 255, 255, 0.18)"
+        strokeWidth="1"
+      />
+
+      {/* ─── 2026 Fluid Panel Design ─── */}
+
+      {/* Top swoosh arc */}
+      <path
+        d="M 24,36 Q 38,18 60,26 Q 82,34 96,24"
+        fill="none" stroke={accent.stroke} strokeWidth="2.2" opacity="0.55"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* Mid swoosh - main accent */}
+      <path
+        d="M 18,58 Q 36,44 60,54 Q 84,64 102,52"
+        fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2"
+        strokeLinecap="round"
+      />
+      {/* Bottom swoosh arc */}
+      <path
+        d="M 24,82 Q 40,98 60,88 Q 80,78 96,92"
+        fill="none" stroke={accent.stroke} strokeWidth="2" opacity="0.4"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+
+      {/* Vertical flow line */}
+      <path
+        d="M 54,18 Q 48,40 56,60 Q 64,80 58,102"
+        fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"
+        strokeLinecap="round"
+      />
+
+      {/* Small panel accent shapes */}
+      <path
+        d="M 40,42 Q 50,36 60,42 Q 52,50 40,42"
+        fill={accent.stroke} opacity="0.12"
+      />
+      <path
+        d="M 68,66 Q 78,60 84,68 Q 76,74 68,66"
+        fill={accent.stroke} opacity="0.1"
+      />
+
+      {/* Seam line details */}
+      <circle cx="42" cy="56" r="8" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+      <circle cx="76" cy="48" r="6" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
+
+      {/* 3D shading overlay */}
+      <circle cx="60" cy="60" r="44" fill={`url(#${ballId}-shade)`} style={{ mixBlendMode: 'overlay' }} />
+
+      {/* Specular highlight */}
+      <circle cx="46" cy="42" r="14" fill={`url(#${ballId}-spec)`} style={{ mixBlendMode: 'overlay' }} />
+
+      {/* Rim light (bottom right) */}
+      <path
+        d="M 80,82 Q 92,72 96,60"
+        fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   )
 })
 
-export function FloatingFootballs({ count = 8, intensity = 'normal' }: FloatingFootballsProps) {
-  const balls = useMemo(() => Array.from({ length: count }, (_, index) => createBall(index)), [count])
-  const opacityScale = intensity === 'soft' ? 0.72 : 1
+export function FloatingFootballs({ count = 7, intensity = 'normal' }: FloatingFootballsProps) {
+  const balls = useMemo(() => Array.from({ length: count }, (_, i) => createBall(i)), [count])
+  const opacityScale = intensity === 'soft' ? 0.65 : 0.85
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      aria-hidden="true"
+    >
+      {/* Desktop balls - larger and more visible */}
       {balls.map((ball) => (
         <motion.div
           key={ball.id}
-          className="absolute"
+          className="absolute hidden md:block"
           style={{
             left: `${ball.left}%`,
             top: `${ball.top}%`,
@@ -89,13 +174,13 @@ export function FloatingFootballs({ count = 8, intensity = 'normal' }: FloatingF
             height: ball.size,
             opacity: ball.opacity * opacityScale,
             filter: `blur(${ball.blur}px)`,
-            zIndex: Math.round(ball.depth * 4),
+            zIndex: Math.round(ball.depth * 3),
           }}
           animate={{
-            x: [0, ball.driftX, ball.driftX * -0.35, 0],
-            y: [0, ball.driftY, ball.driftY * -0.45, 0],
-            rotate: [0, ball.rotate, ball.rotate * 1.35],
-            scale: [1, 1 + ball.depth * 0.16, 0.94, 1],
+            x: [0, ball.driftX * 0.7, ball.driftX * -0.3, 0],
+            y: [0, ball.driftY * 0.7, ball.driftY * -0.35, 0],
+            rotate: [0, ball.rotate * 0.6, ball.rotate],
+            scale: [1, 1 + ball.depth * 0.08, 0.97, 1],
           }}
           transition={{
             duration: ball.duration,
@@ -104,7 +189,37 @@ export function FloatingFootballs({ count = 8, intensity = 'normal' }: FloatingF
             ease: 'easeInOut',
           }}
         >
-          <SoccerBallSvg />
+          <WorldCupBall hue={ball.hue} />
+        </motion.div>
+      ))}
+
+      {/* Mobile balls - smaller but still visible (4 balls) */}
+      {balls.slice(0, 4).map((ball) => (
+        <motion.div
+          key={`m-${ball.id}`}
+          className="absolute md:hidden"
+          style={{
+            left: `${ball.left}%`,
+            top: `${ball.top}%`,
+            width: ball.size * 0.55,
+            height: ball.size * 0.55,
+            opacity: ball.opacity * opacityScale * 0.6,
+            filter: `blur(${ball.blur + 0.5}px)`,
+          }}
+          animate={{
+            x: [0, ball.driftX * 0.3, 0],
+            y: [0, ball.driftY * 0.4, 0],
+            rotate: [0, ball.rotate * 0.3],
+            scale: [1, 1.04, 0.98, 1],
+          }}
+          transition={{
+            duration: ball.duration * 1.2,
+            delay: ball.delay,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        >
+          <WorldCupBall hue={ball.hue} />
         </motion.div>
       ))}
     </div>

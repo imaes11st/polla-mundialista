@@ -34,24 +34,23 @@ create policy "public select answers" on special_answers
   for select using (true);
 
 -- Prediction insert/update policy based on participant identity and match time
-create policy "participant can upsert prediction" on predictions
-  for insert using (true)
-  with check (
-    now() < (select match_date from matches where matches.id = predictions.match_id)
+create policy "participant can insert prediction" on predictions
+  for insert with check (
+    auth.uid() = participant_id
+    and now() < (select match_date from matches where matches.id = predictions.match_id)
   );
 
 create policy "participant can update prediction" on predictions
-  for update using (true)
-  with check (
-    now() < (select match_date from matches where matches.id = predictions.match_id)
+  for update using (
+    auth.uid() = participant_id
+  ) with check (
+    auth.uid() = participant_id
+    and now() < (select match_date from matches where matches.id = predictions.match_id)
   );
 
--- Admin-level service access uses service_role key, not RLS-restricted.
--- Configure Supabase API keys to distinguish admin service from anonymous participants.
-
--- Optional: allow participants to delete only their own predictions before kickoff
 create policy "participant can delete prediction" on predictions
-  for delete using (true);
-
--- If you later use JWT claims, update the policies to check participant_id = auth.jwt().sub
+  for delete using (
+    auth.uid() = participant_id
+    and now() < (select match_date from matches where matches.id = predictions.match_id)
+  );
 

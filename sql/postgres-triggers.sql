@@ -109,12 +109,23 @@ EXECUTE FUNCTION trigger_update_prediction_timestamp();
  */
 CREATE OR REPLACE FUNCTION trigger_audit_participant_changes()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_entity_id UUID;
+  v_action TEXT;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_entity_id := OLD.id;
+    v_action := 'delete';
+  ELSE
+    v_entity_id := NEW.id;
+    v_action := LOWER(TG_OP);
+  END IF;
+
   INSERT INTO audit_logs (entity_type, entity_id, action, changes, user_ip)
   VALUES (
     'participant',
-    NEW.id,
-    CASE WHEN TG_OP = 'DELETE' THEN 'delete' ELSE TG_OP::TEXT END,
+    v_entity_id,
+    v_action,
     jsonb_build_object(
       'old', to_jsonb(OLD),
       'new', to_jsonb(NEW)
@@ -138,12 +149,23 @@ EXECUTE FUNCTION trigger_audit_participant_changes();
  */
 CREATE OR REPLACE FUNCTION trigger_audit_match_changes()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_entity_id UUID;
+  v_action TEXT;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_entity_id := OLD.id;
+    v_action := 'delete';
+  ELSE
+    v_entity_id := NEW.id;
+    v_action := LOWER(TG_OP);
+  END IF;
+
   INSERT INTO audit_logs (entity_type, entity_id, action, changes, user_ip)
   VALUES (
     'match',
-    NEW.id,
-    CASE WHEN TG_OP = 'DELETE' THEN 'delete' ELSE TG_OP::TEXT END,
+    v_entity_id,
+    v_action,
     jsonb_build_object(
       'old', to_jsonb(OLD),
       'new', to_jsonb(NEW)
@@ -170,6 +192,9 @@ EXECUTE FUNCTION trigger_audit_match_changes();
 DROP MATERIALIZED VIEW IF EXISTS ranking_view CASCADE;
 CREATE MATERIALIZED VIEW ranking_view AS
 SELECT * FROM get_participant_ranking(NULL);
+
+-- Unique index required for REFRESH CONCURRENTLY
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ranking_view_participant_id ON ranking_view(participant_id);
 
 -- Refresh view periodically (requires pg_cron extension or external cron)
 CREATE OR REPLACE FUNCTION refresh_ranking_view()
