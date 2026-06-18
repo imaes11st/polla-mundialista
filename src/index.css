@@ -171,3 +171,21 @@ textarea {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ─── GPU compositing hints for glass elements ─── */
+.glass-card {
+  will-change: auto;
+}
+
+/* ─── Accessibility: disable animations for reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .animate-float,
+  .animate-glow-pulse,
+  .animate-gradient-shift,
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+}

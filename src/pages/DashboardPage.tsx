@@ -204,7 +204,7 @@ export function DashboardPage() {
     <div className="relative pb-24 md:pb-8">
       <FloatingFootballs count={5} intensity="soft" />
       <StadiumLights />
-      <WorldCupParticles count={28} />
+      <WorldCupParticles count={14} />
       <ColombiaConfetti active={confettiActive} duration={7000} onEnd={() => setConfettiActive(false)} />
 
       <motion.div className="relative z-10 space-y-5 md:space-y-6" variants={staggerContainer(0.08)} initial="hidden" animate="visible">
@@ -277,14 +277,9 @@ export function DashboardPage() {
                   { label: 'Seg', value: countdown.seconds },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-center">
-                    <motion.p
-                      key={value}
-                      initial={{ scale: 1.1, opacity: 0.7 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="tabular-nums text-lg md:text-xl font-black text-mundialYellow"
-                    >
+                    <p className="tabular-nums text-lg md:text-xl font-black text-mundialYellow">
                       {String(value).padStart(2, '0')}
-                    </motion.p>
+                    </p>
                     <p className="mt-0.5 text-[9px] md:text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
                   </div>
                 ))}

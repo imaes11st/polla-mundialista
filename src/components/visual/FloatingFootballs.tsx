@@ -175,6 +175,7 @@ export function FloatingFootballs({ count = 7, intensity = 'normal' }: FloatingF
             opacity: ball.opacity * opacityScale,
             filter: `blur(${ball.blur}px)`,
             zIndex: Math.round(ball.depth * 3),
+            willChange: 'transform',
           }}
           animate={{
             x: [0, ball.driftX * 0.7, ball.driftX * -0.3, 0],
@@ -193,8 +194,8 @@ export function FloatingFootballs({ count = 7, intensity = 'normal' }: FloatingF
         </motion.div>
       ))}
 
-      {/* Mobile balls - smaller but still visible (4 balls) */}
-      {balls.slice(0, 4).map((ball) => (
+      {/* Mobile balls - reduced to 2 to prevent GPU overload on Android */}
+      {balls.slice(0, 2).map((ball) => (
         <motion.div
           key={`m-${ball.id}`}
           className="absolute md:hidden"
@@ -203,14 +204,14 @@ export function FloatingFootballs({ count = 7, intensity = 'normal' }: FloatingF
             top: `${ball.top}%`,
             width: ball.size * 0.55,
             height: ball.size * 0.55,
-            opacity: ball.opacity * opacityScale * 0.6,
+            opacity: ball.opacity * opacityScale * 0.5,
             filter: `blur(${ball.blur + 0.5}px)`,
+            willChange: 'transform',
           }}
           animate={{
             x: [0, ball.driftX * 0.3, 0],
             y: [0, ball.driftY * 0.4, 0],
             rotate: [0, ball.rotate * 0.3],
-            scale: [1, 1.04, 0.98, 1],
           }}
           transition={{
             duration: ball.duration * 1.2,

@@ -87,6 +87,8 @@ export function ColombiaConfetti({ active = false, duration = 6500, onEnd }: Col
 
     setVisible(true)
 
+    const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
     const burst = (amount: number) => {
       const width = window.innerWidth
       for (let index = 0; index < amount; index += 1) {
@@ -95,8 +97,9 @@ export function ColombiaConfetti({ active = false, duration = 6500, onEnd }: Col
       }
     }
 
-    burst(80)
-    emitterRef.current = setInterval(() => burst(10), 90)
+    // Reduce burst and emission rate on mobile to prevent GPU overload
+    burst(isMobile ? 40 : 80)
+    emitterRef.current = setInterval(() => burst(isMobile ? 5 : 10), isMobile ? 150 : 90)
 
     const stopTimer = window.setTimeout(() => {
       if (emitterRef.current) clearInterval(emitterRef.current)

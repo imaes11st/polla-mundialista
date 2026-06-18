@@ -58,15 +58,35 @@ function drawDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
   ctx.fill()
 }
 
+/** Check if device is mobile (used to reduce GPU load on Android) */
+function isMobileDevice() {
+  return window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+/** Check if user prefers reduced motion */
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
+
 export function WorldCupParticles({ count = 56 }: WorldCupParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
   const rafRef = useRef<number>()
+  const lastFrameRef = useRef<number>(0)
 
   useEffect(() => {
+    // Skip entirely if user prefers reduced motion
+    if (prefersReducedMotion()) return
+
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
+
+    const mobile = isMobileDevice()
+    // Drastically reduce particle count on mobile to prevent GPU overload / flicker
+    const effectiveCount = mobile ? Math.min(count, 15) : count
+    // Throttle to ~30fps on mobile to reduce GPU strain
+    const frameBudget = mobile ? 33 : 0
 
     const resize = () => {
       const ratio = window.devicePixelRatio || 1
@@ -79,15 +99,23 @@ export function WorldCupParticles({ count = 56 }: WorldCupParticlesProps) {
       canvas.style.height = `${height}px`
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
 
-      particlesRef.current = Array.from({ length: count }, (_, index) => createParticle(index, width, height))
+      particlesRef.current = Array.from({ length: effectiveCount }, (_, index) => createParticle(index, width, height))
     }
 
-    const tick = () => {
+    const tick = (timestamp: number) => {
+      // Throttle on mobile
+      if (frameBudget > 0 && timestamp - lastFrameRef.current < frameBudget) {
+        rafRef.current = requestAnimationFrame(tick)
+        return
+      }
+      lastFrameRef.current = timestamp
+
       const width = window.innerWidth
       const height = window.innerHeight
 
       ctx.clearRect(0, 0, width, height)
-      ctx.globalCompositeOperation = 'screen'
+      // Use 'lighter' instead of 'screen' on mobile — less GPU-intensive compositing
+      ctx.globalCompositeOperation = mobile ? 'lighter' : 'screen'
 
       particlesRef.current = particlesRef.current.map((particle) => {
         const pulse = particle.pulse + 0.025
@@ -137,7 +165,9 @@ export function WorldCupParticles({ count = 56 }: WorldCupParticlesProps) {
       ref={canvasRef}
       className="pointer-events-none fixed inset-0 z-0"
       aria-hidden="true"
-      style={{ mixBlendMode: 'screen' }}
+      // Remove mix-blend-mode on mobile — it forces full-page recompositing
+      // and is the #1 cause of flickering on Android Chrome
+      style={{ mixBlendMode: isMobileDevice() ? 'normal' : 'screen' }}
     />
   )
 }

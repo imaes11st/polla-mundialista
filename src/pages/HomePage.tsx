@@ -185,7 +185,7 @@ export function HomePage() {
     <div className="relative space-y-6 md:space-y-8 pb-24 md:pb-20">
       <FloatingFootballs count={6} />
       <StadiumLights />
-      <WorldCupParticles count={40} />
+      <WorldCupParticles count={20} />
       <ColombiaConfetti active={confettiActive} duration={7000} onEnd={() => setConfettiActive(false)} />
 
       {/* ─── Hero Section ─── */}
@@ -274,14 +274,9 @@ export function HomePage() {
                 { label: 'Seg', value: countdown.seconds },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5 md:p-3 text-center">
-                  <motion.p
-                    key={value}
-                    initial={{ scale: 1.15, opacity: 0.7 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="tabular-nums text-xl md:text-2xl font-black text-mundialYellow"
-                  >
+                  <p className="tabular-nums text-xl md:text-2xl font-black text-mundialYellow">
                     {String(value).padStart(2, '0')}
-                  </motion.p>
+                  </p>
                   <p className="mt-0.5 text-[9px] md:text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
                 </div>
               ))}

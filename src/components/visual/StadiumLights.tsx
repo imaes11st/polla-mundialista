@@ -21,7 +21,9 @@ const BEAMS: LightBeam[] = [
 
 export function StadiumLights() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+    // Hidden on mobile (md:block) — the blur + blend-mode + infinite animations
+    // on 6 beams causes severe GPU flicker on Android Chrome
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden hidden md:block" aria-hidden="true">
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.08] to-transparent" />
       <div
         className="absolute inset-x-0 top-0 h-px"
@@ -44,6 +46,7 @@ export function StadiumLights() {
             clipPath: 'polygon(48% 0, 54% 0, 100% 100%, 0 100%)',
             filter: 'blur(7px)',
             mixBlendMode: 'screen',
+            willChange: 'transform, opacity',
           }}
           initial={{ rotate: beam.rotation, opacity: 0.45 }}
           animate={{
@@ -65,3 +68,4 @@ export function StadiumLights() {
     </div>
   )
 }
+
