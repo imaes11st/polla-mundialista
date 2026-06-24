@@ -424,6 +424,8 @@ export function DashboardPage() {
                       initialAwayScore={prediction?.predicted_away}
                       disabled={isBlocked}
                       points={matchPoints}
+                      actualHomeScore={match.home_score}
+                      actualAwayScore={match.away_score}
                       onSave={(home, away) => {
                         if (isBlocked) {
                           showToast('Este partido ya comenzó o cambió su estado. No se permiten modificaciones.', 'error');

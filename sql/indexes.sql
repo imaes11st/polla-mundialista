@@ -47,6 +47,10 @@ ON participant_points(participant_id);
 CREATE INDEX IF NOT EXISTS idx_participant_points_match
 ON participant_points(match_id);
 
+-- UNIQUE constraint required for ON CONFLICT in award_match_points()
+CREATE UNIQUE INDEX IF NOT EXISTS idx_participant_points_unique
+ON participant_points(participant_id, match_id);
+
 -- Score aggregation optimization
 CREATE INDEX IF NOT EXISTS idx_participant_points_composite
 ON participant_points(participant_id, points_awarded)

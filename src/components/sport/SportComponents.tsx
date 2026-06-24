@@ -148,6 +148,8 @@ export function MatchCard({
   onSave,
   disabled = false,
   points,
+  actualHomeScore,
+  actualAwayScore,
 }: {
   homeTeam: { name: string; flagUrl: string }
   awayTeam: { name: string; flagUrl: string }
@@ -159,6 +161,8 @@ export function MatchCard({
   onSave: (home: number, away: number) => void
   disabled?: boolean
   points?: number
+  actualHomeScore?: number | null
+  actualAwayScore?: number | null
 }) {
   const [homeScore, setHomeScore] = React.useState<number | string>(initialHomeScore ?? '')
   const [awayScore, setAwayScore] = React.useState<number | string>(initialAwayScore ?? '')
@@ -272,7 +276,26 @@ export function MatchCard({
           </div>
         </div>
 
-        {/* Score inputs */}
+        {/* Actual score for finished matches */}
+        {isFinished && actualHomeScore !== undefined && actualHomeScore !== null && actualAwayScore !== undefined && actualAwayScore !== null && (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-3">
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center mb-2">Resultado Final</p>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-xs font-semibold text-slate-400 truncate max-w-[80px] text-right flex-1">{homeTeam.name}</span>
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-mundialYellow/10 border border-mundialYellow/25">
+                <span className="text-xl font-black text-mundialYellow tabular-nums">{actualHomeScore}</span>
+                <span className="text-sm font-bold text-mundialYellow/50">-</span>
+                <span className="text-xl font-black text-mundialYellow tabular-nums">{actualAwayScore}</span>
+              </div>
+              <span className="text-xs font-semibold text-slate-400 truncate max-w-[80px] flex-1">{awayTeam.name}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Score inputs — user prediction */}
+        {isFinished && (
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center">Tu Pronóstico</p>
+        )}
         <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3 border border-white/[0.05]">
           <input
             type="number"

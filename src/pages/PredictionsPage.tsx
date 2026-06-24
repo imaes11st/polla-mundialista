@@ -172,6 +172,8 @@ export function PredictionsPage() {
                   initialAwayScore={prediction?.predicted_away}
                   disabled={isMatchLocked}
                   points={matchPoints} // 👈 Pasamos los puntos del backend
+                  actualHomeScore={match.home_score}
+                  actualAwayScore={match.away_score}
                   onSave={(home, away) => {
                     if (isMatchLocked) {
                       showToast('Este partido ya comenzó o su hora ha pasado. No se permiten modificaciones.', 'error')
