@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '../components/ui/Card'
@@ -15,9 +15,38 @@ interface SpecialQuestion {
   answer?: string
 }
 
+// Deadline: June 25 2026, 11:59 PM Colombia time (UTC-5)
+const SPECIAL_DEADLINE = new Date('2026-06-26T04:59:00Z') // 11:59 PM COT = 04:59 UTC next day
+
+
 export function SpecialQuestionsPage() {
   const queryClient = useQueryClient()
   const { participant } = useCurrentParticipant()
+
+  // Check if deadline has passed
+  const isLocked = Date.now() >= SPECIAL_DEADLINE.getTime()
+
+  // Countdown to deadline
+  const [countdown, setCountdown] = React.useState(() => {
+    const diff = SPECIAL_DEADLINE.getTime() - Date.now()
+    if (diff <= 0) return null
+    return diff
+  })
+
+  React.useEffect(() => {
+    if (countdown === null || countdown <= 0) return
+    const timer = setInterval(() => {
+      const diff = SPECIAL_DEADLINE.getTime() - Date.now()
+      setCountdown(diff > 0 ? diff : null)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [countdown !== null])
+
+  const countdownDisplay = countdown !== null ? {
+    hours: Math.floor(countdown / 3600000),
+    minutes: Math.floor((countdown % 3600000) / 60000),
+    seconds: Math.floor((countdown % 60000) / 1000),
+  } : null
 
   // 1. Obtener torneos para saber cuál es el activo
   const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
@@ -25,7 +54,7 @@ export function SpecialQuestionsPage() {
     queryFn: () => supabaseService.listTournaments().then((res) => res.data || []),
   })
 
-  const activeTournamentId = useMemo(() => 
+  const activeTournamentId = useMemo(() =>
     tournaments?.find((t: any) => t.is_active)?.id || tournaments?.[0]?.id || '',
     [tournaments]
   )
@@ -80,7 +109,7 @@ export function SpecialQuestionsPage() {
   }, [dbQuestions, dbAnswers])
 
   const handleAnswer = (questionId: string, answer: string) => {
-    if (!participant?.id) return
+    if (!participant?.id || isLocked) return
     saveAnswerMutation.mutate({
       question_id: questionId,
       participant_id: participant.id,
@@ -89,7 +118,6 @@ export function SpecialQuestionsPage() {
   }
 
   const answeredCount = questions.filter((q) => q.answered).length
-  const totalPoints = questions.reduce((sum, q) => (q.answered ? sum + q.points : sum), 0)
 
   if (isLoadingTournaments || isLoadingQuestions || isLoadingAnswers || isLoadingTeams) {
     return (
@@ -125,34 +153,50 @@ export function SpecialQuestionsPage() {
       <Card>
         <div className="space-y-4">
           <p className="text-sm uppercase tracking-[0.3em] text-mundialYellow">
-            🎯 Pronósticos Especiales
+            🎯 Preguntas Especiales
           </p>
-          <h1 className="text-4xl font-black text-white">Preguntas Especiales del Torneo</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-white">¡Batacazo!</h1>
           <p className="text-slate-400 mb-4">
-            Responde a estas preguntas especiales y gana puntos extras. Tienes oportunidad de ganar 
-            {' '}
-            <span className="font-bold text-mundialYellow">{questions.reduce((s, q) => s + q.points, 0)} puntos</span>
-            {' '}
-            en total.
+            Responde a estas preguntas especiales del torneo. Tus respuestas quedarán guardadas.
+            {!isLocked && (
+              <> Puedes cambiar tus respuestas hasta el <span className="font-bold text-mundialYellow">25 de junio a las 11:59 PM</span>.</>
+            )}
           </p>
 
+          {/* Deadline banner */}
+          {isLocked ? (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 flex items-center gap-3">
+              <span className="text-lg">🔒</span>
+              <div>
+                <p className="text-sm font-bold text-red-400">Plazo cerrado</p>
+                <p className="text-xs text-red-400/70">Las respuestas ya no se pueden modificar.</p>
+              </div>
+            </div>
+          ) : countdownDisplay && (
+            <div className="rounded-xl border border-mundialYellow/30 bg-mundialYellow/[0.08] px-4 py-3 flex items-center gap-3">
+              <span className="text-lg">⏳</span>
+              <div>
+                <p className="text-sm font-bold text-mundialYellow">Tiempo restante para responder</p>
+                <p className="text-xs text-mundialYellow/70 tabular-nums">
+                  {countdownDisplay.hours}h {String(countdownDisplay.minutes).padStart(2, '0')}m {String(countdownDisplay.seconds).padStart(2, '0')}s
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Progress */}
-          <div className="grid md:grid-cols-3 gap-4 mt-6">
+          <div className="grid md:grid-cols-2 gap-4 mt-6">
             <div className="bg-slate-800/50 rounded-lg p-4">
-              <p className="text-sm text-slate-400 mb-2">Completadas</p>
+              <p className="text-sm text-slate-400 mb-2">Respondidas</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-mundialYellow">{answeredCount}</span>
                 <span className="text-slate-400">/ {questions.length}</span>
               </div>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4">
-              <p className="text-sm text-slate-400 mb-2">Puntos Acumulados</p>
-              <p className="text-3xl font-black text-mundialYellow">{totalPoints}</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-4">
-              <p className="text-sm text-slate-400 mb-2">Puntos Disponibles</p>
-              <p className="text-3xl font-black text-green-400">
-                +{questions.reduce((s, q) => s + (q.answered ? 0 : q.points), 0)}
+              <p className="text-sm text-slate-400 mb-2">Pendientes</p>
+              <p className="text-3xl font-black text-slate-300">
+                {questions.length - answeredCount}
               </p>
             </div>
           </div>
@@ -172,10 +216,11 @@ export function SpecialQuestionsPage() {
               question={question.question}
               type={question.type}
               points={question.points}
-              answered={question.answered}
+              answered={isLocked ? question.answered : false}
               answer={question.answer}
               teams={teams}
               onAnswer={(answer) => handleAnswer(question.id, answer)}
+              locked={isLocked}
             />
           </motion.div>
         ))}
@@ -193,7 +238,7 @@ export function SpecialQuestionsPage() {
               ✅ ¡Todas las preguntas respondidas!
             </p>
             <p className="text-green-300">
-              Tus respuestas se guardarán automáticamente. Los resultados se revelarán cuando el torneo termine.
+              Tus respuestas han sido guardadas.{!isLocked && ' Puedes cambiarlas hasta el 25 de junio a las 11:59 PM.'}
             </p>
           </div>
         </motion.div>
@@ -201,3 +246,4 @@ export function SpecialQuestionsPage() {
     </div>
   )
 }
+

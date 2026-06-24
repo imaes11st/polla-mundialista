@@ -78,6 +78,7 @@ interface SpecialQuestionCardProps {
   answer?: string
   onAnswer: (value: string) => void
   teams?: Array<{ id: string; name: string }>
+  locked?: boolean
 }
 
 export function SpecialQuestionCard({
@@ -88,6 +89,7 @@ export function SpecialQuestionCard({
   answer: initialAnswer,
   onAnswer,
   teams = [],
+  locked = false,
 }: SpecialQuestionCardProps) {
   const [localAnswer, setLocalAnswer] = React.useState(initialAnswer || '')
 
@@ -98,7 +100,7 @@ export function SpecialQuestionCard({
   const isDuel = question.toLowerCase().includes('messi') && question.toLowerCase().includes('ronaldo')
 
   const handleSave = () => {
-    if (localAnswer.trim()) {
+    if (localAnswer.trim() && !locked) {
       onAnswer(localAnswer.trim())
     }
   }
@@ -107,18 +109,47 @@ export function SpecialQuestionCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-mundialYellow/20 p-6 hover:border-mundialYellow/50 transition-colors shadow-lg"
+      className={`relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border p-6 transition-colors shadow-lg ${
+        locked ? 'border-white/10 opacity-90' : 'border-mundialYellow/20 hover:border-mundialYellow/50'
+      }`}
     >
-      {/* Points badge */}
-      <div className="absolute top-4 right-4 bg-gradient-to-r from-mundialYellow to-orange-500 rounded-full px-4 py-2 shadow-md">
-        <span className="font-bold text-slate-900 text-xs">+{points} pts</span>
+      {/* Lock badge when locked, otherwise just a decorative icon */}
+      <div className={`absolute top-4 right-4 rounded-full px-3 py-1.5 shadow-md ${
+        locked
+          ? 'bg-slate-700/80 border border-white/10'
+          : 'bg-slate-700/60 border border-mundialYellow/20'
+      }`}>
+        <span className="font-bold text-xs text-slate-400">
+          {locked ? '🔒' : '📝'}
+        </span>
       </div>
 
       {/* Question */}
-      <h3 className="text-lg font-bold text-white mb-4 pr-24 leading-snug">{question}</h3>
+      <h3 className="text-lg font-bold text-white mb-4 pr-16 leading-snug">{question}</h3>
 
       {/* Answer input based on type */}
-      {!answered ? (
+      {locked && answered ? (
+        /* Locked + answered: show read-only answer */
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col gap-2"
+        >
+          <div className="flex items-center gap-2 text-green-400 font-bold text-sm">
+            <span>✅ Respuesta Guardada</span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Tu respuesta:</p>
+            <p className="font-bold text-white text-lg mt-0.5">{initialAnswer}</p>
+          </div>
+        </motion.div>
+      ) : locked && !answered ? (
+        /* Locked + not answered: show warning */
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <p className="text-sm font-bold text-red-400">⏰ No respondida</p>
+          <p className="text-xs text-red-400/70 mt-1">El plazo para responder ha cerrado.</p>
+        </div>
+      ) : !answered ? (
         <div className="space-y-4">
           {isDuel ? (
             <div className="grid grid-cols-2 gap-3">
@@ -148,7 +179,7 @@ export function SpecialQuestionCard({
                 ))}
               </select>
               <Button onClick={handleSave} disabled={!localAnswer} className="w-full py-2.5 text-sm font-bold">
-                Guardar Selección
+                {initialAnswer ? 'Cambiar Selección' : 'Guardar Selección'}
               </Button>
             </div>
           ) : (
@@ -171,9 +202,16 @@ export function SpecialQuestionCard({
                 />
               )}
               <Button onClick={handleSave} disabled={!localAnswer.trim()} className="w-full py-2.5 text-sm font-bold">
-                Guardar Respuesta
+                {initialAnswer ? 'Cambiar Respuesta' : 'Guardar Respuesta'}
               </Button>
             </div>
+          )}
+
+          {/* Show current answer if re-editing */}
+          {initialAnswer && (
+            <p className="text-xs text-slate-500 mt-1">
+              Respuesta actual: <span className="text-slate-300 font-semibold">{initialAnswer}</span>
+            </p>
           )}
         </div>
       ) : (

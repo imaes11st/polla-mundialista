@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '../components/ui/Card'
 import { MatchCard } from '../components/sport/SportComponents'
@@ -15,6 +15,7 @@ export function PredictionsPage() {
   const { participant } = useParticipant()
   const { showToast } = useToast()
   const [selectedStage, setSelectedStage] = useState<string>('')
+  const dateScrollRef = useRef<HTMLDivElement>(null)
 
   const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
     queryKey: ['tournaments-predictions'],
@@ -80,6 +81,16 @@ export function PredictionsPage() {
   const activeMatches = groupedByDate[currentActiveDate] || []
   const isLoading = isLoadingMatches || isLoadingTournaments || !activeTournamentId || !participant?.id
 
+  // Auto-scroll date carousel to today's date
+  useEffect(() => {
+    if (!isLoading && currentActiveDate && dateScrollRef.current) {
+      const activeBtn = dateScrollRef.current.querySelector(`[data-date="${currentActiveDate}"]`) as HTMLElement
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+      }
+    }
+  }, [isLoading, currentActiveDate])
+
   return (
     <motion.div
       className="space-y-6"
@@ -103,11 +114,12 @@ export function PredictionsPage() {
       )}
 
       {!isLoading && datesAvailable.length > 0 && (
-        <div className="py-2 -mx-4 px-4 overflow-x-auto no-scrollbar">
+        <div ref={dateScrollRef} className="py-2 -mx-4 px-4 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max">
             {datesAvailable.map((date) => (
               <button
                 key={date}
+                data-date={date}
                 onClick={() => setSelectedStage(date)}
                 className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all border ${
                   currentActiveDate === date

@@ -84,10 +84,10 @@ export function HomePage() {
   })
 
   const activeTournamentId = tournaments?.find((t: any) => t.is_active)?.id || tournaments?.[0]?.id || ''
-  
+
   // Dynamic Ranking and Statistics
   const { data: rankingData } = useParticipantRanking(activeTournamentId)
-  
+
   const topThree = useMemo(() => {
     if (!rankingData || rankingData.length === 0) {
       return [
@@ -134,11 +134,11 @@ export function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(252,209,22,0.08)_0%,transparent_50%)]" />
 
         <motion.div
-          animate={{ 
+          animate={{
             rotate: 360,
             y: [0, -24, 0]
           }}
-          transition={{ 
+          transition={{
             rotate: { repeat: Infinity, duration: 3, ease: "linear" },
             y: { repeat: Infinity, duration: 1.4, ease: "easeInOut" }
           }}
@@ -151,8 +151,8 @@ export function HomePage() {
           <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-white/20" />
           <span className="text-5xl">⚽</span>
         </motion.div>
-        
-        <motion.h2 
+
+        <motion.h2
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -168,9 +168,9 @@ export function HomePage() {
         >
           Mundial 2026
         </motion.p>
-        
+
         <div className="w-60 h-1 bg-white/[0.06] rounded-full mt-8 overflow-hidden">
-          <motion.div 
+          <motion.div
             initial={{ width: 0 }}
             animate={{ width: '100%' }}
             transition={{ duration: 1.8, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -227,7 +227,7 @@ export function HomePage() {
             ) : (
               <Link to="/login">
                 <Button size="lg" glow className="w-full gap-3">
-                  <AnimatedBall /> INGRESAR A PRONOSTICAR
+                  <AnimatedBall /> REGISTRA TUS PRONÓSTICOS
                 </Button>
               </Link>
             )}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -89,6 +89,7 @@ export function DashboardPage() {
   const { showToast } = useToast()
   const [confettiActive, setConfettiActive] = useState(false)
   const [selectedStage, setSelectedStage] = useState<string>('')
+  const dateScrollRef = useRef<HTMLDivElement>(null)
 
   const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
     queryKey: ['tournaments-dashboard'],
@@ -184,6 +185,17 @@ export function DashboardPage() {
   const currentActiveDate = selectedStage || defaultDate
   const activeMatches = currentActiveDate ? (groupedByDate[currentActiveDate] || []) : []
   const isLoading = isLoadingMatches || isLoadingTournaments || !activeTournamentId || !participant?.id
+
+  // Auto-scroll date carousel to today's date
+  useEffect(() => {
+    if (!isLoading && currentActiveDate && dateScrollRef.current) {
+      const activeBtn = dateScrollRef.current.querySelector(`[data-date="${currentActiveDate}"]`) as HTMLElement
+      if (activeBtn) {
+        // Scroll the button to the start of the visible area
+        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+      }
+    }
+  }, [isLoading, currentActiveDate])
 
   // Encontrar posición del usuario actual
   const userRank = rankingData && Array.isArray(rankingData) 
@@ -312,7 +324,7 @@ export function DashboardPage() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-black text-white text-sm md:text-base truncate">🎯 Preguntas Especiales</h3>
-                    <p className="text-[11px] md:text-sm text-slate-400 truncate">¡Gana hasta 38 puntos extra!</p>
+                    <p className="text-[11px] md:text-sm text-slate-400 truncate">¡Responde antes del 25 de junio!</p>
                   </div>
                 </div>
                 <span className="hidden sm:block rounded-xl bg-mundialYellow/10 border border-mundialYellow/25 px-3 py-1.5 text-[10px] md:text-xs font-black text-mundialYellow uppercase">
@@ -348,11 +360,12 @@ export function DashboardPage() {
 
           {/* Date tabs */}
           {!isLoading && datesAvailable.length > 0 && (
-            <div className="py-1 -mx-4 px-4 overflow-x-auto no-scrollbar">
+            <div ref={dateScrollRef} className="py-1 -mx-4 px-4 overflow-x-auto no-scrollbar">
               <div className="flex gap-2 min-w-max">
                 {datesAvailable.map((date) => (
                   <button
                     key={date}
+                    data-date={date}
                     onClick={() => setSelectedStage(date)}
                     className={`px-4 py-2 text-[10px] md:text-xs font-black uppercase tracking-wider rounded-xl transition-all border ${
                       currentActiveDate === date

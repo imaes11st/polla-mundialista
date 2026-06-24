@@ -190,21 +190,22 @@ export function ColombiaConfetti({ active = false, duration = 6500, onEnd }: Col
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -96, opacity: 0, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 190, damping: 19 }}
-            className="absolute left-1/2 top-6 z-10 w-[min(92vw,520px)] -translate-x-1/2"
+            className="absolute inset-x-0 top-4 z-10 flex justify-center px-3 sm:px-4"
           >
-            <div className="overflow-hidden rounded-2xl border border-white/25 bg-slate-950/92 shadow-2xl backdrop-blur-md">
+            <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-white/25 bg-slate-950/92 shadow-2xl backdrop-blur-md">
               <div className="h-2 bg-gradient-to-r from-[#FCD116] via-[#003893] to-[#CE1126]" />
-              <div className="flex items-center justify-center gap-4 px-5 py-4 text-center">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 text-center">
                 <ColombiaMark />
-                <div>
-                  <p className="text-xl font-black uppercase tracking-wide text-white sm:text-2xl">
+                <div className="min-w-0">
+                  <p className="text-base sm:text-xl font-black uppercase tracking-wide text-white leading-tight">
                     Colombia gana
                   </p>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-mundialYellow">
+                  <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.18em] sm:tracking-[0.22em] text-mundialYellow">
                     Celebra tus puntos
                   </p>
                 </div>
                 <motion.div
+                  className="flex-shrink-0"
                   animate={{ rotate: [0, 18, -18, 0], scale: [1, 1.08, 1] }}
                   transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
                 >
