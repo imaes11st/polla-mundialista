@@ -15,6 +15,8 @@ export function formatStage(stage: string): string {
   }
   switch (upper) {
     case 'GROUP_STAGE': return 'Fase de Grupos'
+    case 'ROUND_OF_32':
+    case 'LAST_32': return 'Dieciseisavos de Final'
     case 'ROUND_OF_16':
     case 'LAST_16': return 'Octavos de Final'
     case 'QUARTER_FINALS': return 'Cuartos de Final'

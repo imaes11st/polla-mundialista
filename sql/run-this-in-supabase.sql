@@ -37,6 +37,8 @@ create table if not exists matches (
   status text not null check (status in ('scheduled', 'live', 'finished')),
   home_score int,
   away_score int,
+  home_score_regular int,  -- 90-min score for knockout stages
+  away_score_regular int,  -- 90-min score for knockout stages
   created_at timestamptz not null default now(),
   constraint check_match_scores check (
     (home_score is null and away_score is null)
@@ -185,13 +187,14 @@ declare
   v_mapped_stage text;
 begin
   -- Map external stage names to internal scoring stages
+  -- FIXED: Added 'last_32' for football-data.org Round of 32
   v_mapped_stage := case 
     when p_stage ilike '%regular%' or p_stage ilike '%group%' or p_stage ilike '%jornada%' then 'Grupo'
-    when p_stage ilike '%round of 32%' or p_stage ilike '%dieciseisavos%' then 'Dieciseisavos'
+    when p_stage ilike '%round of 32%' or p_stage ilike '%dieciseisavos%' or p_stage ilike '%last_32%' then 'Dieciseisavos'
     when p_stage ilike '%round of 16%' or p_stage ilike '%last_16%' or p_stage ilike '%octavos%' then 'Octavos'
     when p_stage ilike '%quarter%' or p_stage ilike '%cuartos%' then 'Cuartos'
     when p_stage ilike '%semi%' then 'Semifinal'
-    when p_stage ilike '%third%' or p_stage ilike '%tercer%' then 'Tercer Puesto'
+    when p_stage ilike '%third%' or p_stage ilike '%tercer%' or p_stage ilike '%3rd%' then 'Tercer Puesto'
     when p_stage ilike '%final%' and p_stage not ilike '%semi%' and p_stage not ilike '%quarter%' and p_stage not ilike '%round%' then 'Final'
     else 'Grupo' -- Default
   end;
@@ -252,6 +255,7 @@ begin
     from predictions
     where match_id = p_match_id
   loop
+    -- home_score/away_score = fullTime (includes extra time, excludes penalties)
     v_points := calculate_prediction_points(
       v_prediction.predicted_home,
       v_prediction.predicted_away,

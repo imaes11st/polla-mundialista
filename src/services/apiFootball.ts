@@ -14,6 +14,8 @@ export interface NormalizedMatch {
   status: string
   homeScore: number | null
   awayScore: number | null
+  homeScoreRegular: number | null  // 90-minute score (null for group stage)
+  awayScoreRegular: number | null  // 90-minute score (null for group stage)
   homeTeam: NormalizedTeam
   awayTeam: NormalizedTeam
 }
@@ -121,6 +123,9 @@ export class ApiFootballService {
 
     return rawMatches.map((m) => {
       if (isFootballData) {
+        // football-data.org provides score.regularTime for 90-min result
+        const regularHome = m.score?.regularTime?.home ?? null
+        const regularAway = m.score?.regularTime?.away ?? null
         return {
           id: m.id,
           matchDate: m.utcDate,
@@ -128,6 +133,8 @@ export class ApiFootballService {
           status: m.status?.toLowerCase(),
           homeScore: m.score?.fullTime?.home ?? null,
           awayScore: m.score?.fullTime?.away ?? null,
+          homeScoreRegular: regularHome,
+          awayScoreRegular: regularAway,
           homeTeam: {
             id: m.homeTeam?.id,
             name: m.homeTeam?.name,
@@ -142,7 +149,14 @@ export class ApiFootballService {
           },
         }
       } else {
-        // Formato para API-Football (api-sports.io)
+        // api-sports.io: extratime is provided separately when match goes to ET
+        const hasExtraTime = m.score?.extratime?.home != null
+        const regularHome = hasExtraTime
+          ? (m.goals?.home ?? 0) - (m.score?.extratime?.home ?? 0)
+          : null
+        const regularAway = hasExtraTime
+          ? (m.goals?.away ?? 0) - (m.score?.extratime?.away ?? 0)
+          : null
         return {
           id: m.fixture?.id,
           matchDate: m.fixture?.date,
@@ -150,6 +164,8 @@ export class ApiFootballService {
           status: m.fixture?.status?.short?.toLowerCase() === 'ft' ? 'finished' : 'scheduled',
           homeScore: m.goals?.home ?? null,
           awayScore: m.goals?.away ?? null,
+          homeScoreRegular: regularHome,
+          awayScoreRegular: regularAway,
           homeTeam: {
             id: m.teams?.home?.id,
             name: m.teams?.home?.name,

@@ -23,6 +23,21 @@ export class FootballApiService implements FootballApiClient {
         const home_score = isFootballData ? f.score?.fullTime?.home : f.goals?.home
         const away_score = isFootballData ? f.score?.fullTime?.away : f.goals?.away
 
+        // 90-minute score for knockout stages (used for scoring predictions)
+        let home_score_regular: number | null = null
+        let away_score_regular: number | null = null
+        if (isFootballData) {
+          // football-data.org provides regularTime directly
+          home_score_regular = f.score?.regularTime?.home ?? null
+          away_score_regular = f.score?.regularTime?.away ?? null
+        } else {
+          // api-sports.io: compute by subtracting extratime
+          if (f.score?.extratime?.home != null) {
+            home_score_regular = (f.goals?.home ?? 0) - (f.score.extratime.home ?? 0)
+            away_score_regular = (f.goals?.away ?? 0) - (f.score.extratime.away ?? 0)
+          }
+        }
+
         return {
           id,
           tournament_id: tournamentId,
@@ -34,6 +49,8 @@ export class FootballApiService implements FootballApiClient {
           status,
           home_score: home_score !== null && home_score !== undefined ? Number(home_score) : null,
           away_score: away_score !== null && away_score !== undefined ? Number(away_score) : null,
+          home_score_regular: home_score_regular !== null ? Number(home_score_regular) : null,
+          away_score_regular: away_score_regular !== null ? Number(away_score_regular) : null,
           created_at: new Date().toISOString()
         } as Match
       })

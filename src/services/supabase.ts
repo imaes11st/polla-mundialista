@@ -145,6 +145,8 @@ export const supabaseService = {
       home_score: number
       away_score: number
       status: 'scheduled' | 'live' | 'finished'
+      home_score_regular?: number | null
+      away_score_regular?: number | null
     }
   ) {
     return ensureClient()

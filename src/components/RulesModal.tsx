@@ -105,6 +105,13 @@ export function RulesModal() {
                     </div>
                   ))}
 
+                  <div className="rounded-2xl bg-mundialYellow/10 border border-mundialYellow/25 p-4 flex gap-3">
+                    <Target className="text-mundialYellow shrink-0" size={20} />
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      <span className="font-bold text-white">⚽ Fases Eliminatorias:</span> Se toma el <span className="font-bold text-mundialYellow">resultado final incluyendo alargue</span>, pero sin contar penales. Ejemplo: si queda 1-1 en 90' y 2-1 en alargue → se evalúa contra <span className="font-bold text-mundialYellow">2-1</span>. Si va a penales con 1-1 → se evalúa contra <span className="font-bold text-mundialYellow">1-1</span>.
+                    </p>
+                  </div>
+
                   <div className="rounded-2xl bg-mundialBlue/20 border border-mundialBlue/30 p-4 flex gap-3">
                     <Swords className="text-mundialBlue shrink-0" size={20} />
                     <p className="text-xs text-slate-300 leading-relaxed">

@@ -37,6 +37,8 @@ export interface Match {
   status: MatchStatus
   home_score: number | null
   away_score: number | null
+  home_score_regular: number | null  // 90-min score for knockout stages
+  away_score_regular: number | null  // 90-min score for knockout stages
   created_at: string
 }
 

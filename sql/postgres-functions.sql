@@ -28,11 +28,11 @@ BEGIN
   -- Map external stage names to internal scoring stages
   v_mapped_stage := CASE 
     WHEN p_stage ILIKE '%regular%' OR p_stage ILIKE '%group%' OR p_stage ILIKE '%jornada%' THEN 'Grupo'
-    WHEN p_stage ILIKE '%round of 32%' OR p_stage ILIKE '%dieciseisavos%' THEN 'Dieciseisavos'
+    WHEN p_stage ILIKE '%round of 32%' OR p_stage ILIKE '%dieciseisavos%' OR p_stage ILIKE '%last_32%' THEN 'Dieciseisavos'
     WHEN p_stage ILIKE '%round of 16%' OR p_stage ILIKE '%last_16%' OR p_stage ILIKE '%octavos%' THEN 'Octavos'
     WHEN p_stage ILIKE '%quarter%' OR p_stage ILIKE '%cuartos%' THEN 'Cuartos'
     WHEN p_stage ILIKE '%semi%' THEN 'Semifinal'
-    WHEN p_stage ILIKE '%third%' OR p_stage ILIKE '%tercer%' THEN 'Tercer Puesto'
+    WHEN p_stage ILIKE '%third%' OR p_stage ILIKE '%tercer%' OR p_stage ILIKE '%3rd%' THEN 'Tercer Puesto'
     WHEN p_stage ILIKE '%final%' AND p_stage NOT ILIKE '%semi%' AND p_stage NOT ILIKE '%quarter%' AND p_stage NOT ILIKE '%round%' THEN 'Final'
     ELSE 'Grupo' -- Default
   END;
