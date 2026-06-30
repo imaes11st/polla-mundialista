@@ -315,13 +315,17 @@ $$ language plpgsql stable;
 create or replace function trigger_award_points_on_finish()
 returns trigger as $$
 begin
-  if new.status = 'finished'
-     and new.home_score is not null
-     and new.away_score is not null
-     and (old.status is distinct from 'finished'
-       or old.home_score is distinct from new.home_score
-       or old.away_score is distinct from new.away_score) then
-    perform award_match_points(new.id);
+  -- Only trigger when status changes to 'finished' with scores
+  if new.status = 'finished' and new.home_score is not null and new.away_score is not null then
+    -- If status changed to finished, or if scores changed
+    if old.status is distinct from 'finished' or 
+       old.home_score is distinct from new.home_score or 
+       old.away_score is distinct from new.away_score then
+      perform award_match_points(new.id);
+    end if;
+  -- If match was finished but is now not, or scores were removed
+  elsif old.status = 'finished' and (new.status is distinct from 'finished' or new.home_score is null or new.away_score is null) then
+    delete from participant_points where match_id = new.id;
   end if;
   return new;
 end;

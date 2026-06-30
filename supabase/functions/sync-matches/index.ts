@@ -228,8 +228,19 @@ serve(async (req) => {
         
         const status = mapStatus(m.status); // Usa la misma función para ambos formatos
 
-        const homeScore = m.score?.fullTime?.home !== null && m.score?.fullTime?.home !== undefined ? Number(m.score.fullTime.home) : null;
-        const awayScore = m.score?.fullTime?.away !== null && m.score?.fullTime?.away !== undefined ? Number(m.score.fullTime.away) : null;
+        let homeScore = m.score?.fullTime?.home !== null && m.score?.fullTime?.home !== undefined ? Number(m.score.fullTime.home) : null;
+        let awayScore = m.score?.fullTime?.away !== null && m.score?.fullTime?.away !== undefined ? Number(m.score.fullTime.away) : null;
+
+        // If it ended in penalties, football-data.org fullTime score includes penalties (e.g. 5-6).
+        // For predictions, we want the score at the end of the match (regular time + extra time).
+        if (m.score?.duration === 'PENALTY_SHOOTOUT') {
+          const regHome = m.score?.regularTime?.home !== null && m.score?.regularTime?.home !== undefined ? Number(m.score.regularTime.home) : 0;
+          const regAway = m.score?.regularTime?.away !== null && m.score?.regularTime?.away !== undefined ? Number(m.score.regularTime.away) : 0;
+          const extHome = m.score?.extraTime?.home !== null && m.score?.extraTime?.home !== undefined ? Number(m.score.extraTime.home) : 0;
+          const extAway = m.score?.extraTime?.away !== null && m.score?.extraTime?.away !== undefined ? Number(m.score.extraTime.away) : 0;
+          homeScore = regHome + extHome;
+          awayScore = regAway + extAway;
+        }
 
         const homeName = m.homeTeam?.name;
         const homeCode = m.homeTeam?.tla || '';

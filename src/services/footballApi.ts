@@ -20,8 +20,17 @@ export class FootballApiService implements FootballApiClient {
           status = 'live'
         }
 
-        const home_score = isFootballData ? f.score?.fullTime?.home : f.goals?.home
-        const away_score = isFootballData ? f.score?.fullTime?.away : f.goals?.away
+        let home_score = isFootballData ? f.score?.fullTime?.home : f.goals?.home
+        let away_score = isFootballData ? f.score?.fullTime?.away : f.goals?.away
+
+        if (isFootballData && f.score?.duration === 'PENALTY_SHOOTOUT') {
+          const regHome = f.score?.regularTime?.home !== null && f.score?.regularTime?.home !== undefined ? Number(f.score.regularTime.home) : 0;
+          const regAway = f.score?.regularTime?.away !== null && f.score?.regularTime?.away !== undefined ? Number(f.score.regularTime.away) : 0;
+          const extHome = f.score?.extraTime?.home !== null && f.score?.extraTime?.home !== undefined ? Number(f.score.extraTime.home) : 0;
+          const extAway = f.score?.extraTime?.away !== null && f.score?.extraTime?.away !== undefined ? Number(f.score.extraTime.away) : 0;
+          home_score = regHome + extHome;
+          away_score = regAway + extAway;
+        }
 
         // 90-minute score for knockout stages (used for scoring predictions)
         let home_score_regular: number | null = null

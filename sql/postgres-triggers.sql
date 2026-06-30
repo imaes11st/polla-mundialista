@@ -46,9 +46,15 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Only trigger when status changes to 'finished' with scores
   IF NEW.status = 'finished' AND NEW.home_score IS NOT NULL AND NEW.away_score IS NOT NULL THEN
-    IF OLD.status IS DISTINCT FROM 'finished' THEN
+    -- If status changed to finished, or if scores changed
+    IF OLD.status IS DISTINCT FROM 'finished' OR 
+       OLD.home_score IS DISTINCT FROM NEW.home_score OR 
+       OLD.away_score IS DISTINCT FROM NEW.away_score THEN
       PERFORM award_match_points(NEW.id);
     END IF;
+  -- If match was finished but is now not, or scores were removed
+  ELSIF OLD.status = 'finished' AND (NEW.status IS DISTINCT FROM 'finished' OR NEW.home_score IS NULL OR NEW.away_score IS NULL) THEN
+    DELETE FROM participant_points WHERE match_id = NEW.id;
   END IF;
   RETURN NEW;
 END;
